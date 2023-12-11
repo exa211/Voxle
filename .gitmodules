@@ -6,3 +6,6 @@
 	path = lib/imgui
 	url = git@github.com:ocornut/imgui.git
 	branch = docking
+[submodule "lib/stb"]
+	path = lib/stb
+	url = git@github.com:nothings/stb.git

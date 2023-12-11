@@ -9,3 +9,6 @@
 [submodule "lib/stb"]
 	path = lib/stb
 	url = git@github.com:nothings/stb.git
+[submodule "lib/FastNoise2"]
+	path = lib/FastNoise2
+	url = git@github.com:Auburn/FastNoise2.git

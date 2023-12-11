@@ -16,3 +16,6 @@
 	path = lib/glm
 	url = git@github.com:g-truc/glm.git
 	branch = 0.9.8
+[submodule "lib/VulkanMemoryAllocator"]
+	path = lib/VulkanMemoryAllocator
+	url = git@github.com:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

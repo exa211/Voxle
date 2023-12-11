@@ -12,3 +12,7 @@
 [submodule "lib/FastNoise2"]
 	path = lib/FastNoise2
 	url = git@github.com:Auburn/FastNoise2.git
+[submodule "lib/glm"]
+	path = lib/glm
+	url = git@github.com:g-truc/glm.git
+	branch = 0.9.8

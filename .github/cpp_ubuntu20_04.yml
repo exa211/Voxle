@@ -1,0 +1,27 @@
+name: C++ Ubuntu 20.04
+on: [push]
+jobs:
+  build:
+    runs_on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          gcc: ['9']
+    steps:
+      - name: Install newest git version
+        run: sudo apt update && sudo apt-get install -y software-properties-common && sudo add-apt-repository -y ppa:git-core/ppa && sudo apt-get update && sudo apt-get install -y git
+
+      - name: Install GCC version ${{ matrix.config.gcc}}
+        run: sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y && sudo apt update && sudo apt install -y gcc-${{ matrix.gcc}} g++-${{ matrix.gcc}} && sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc}} 100 --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc}}
+
+      - name: Install Vulkan SDK
+        run: wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add - && sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list && sudo apt update && sudo apt install -y vulkan-sdk
+
+      - uses: actions/checkout@v3
+        name: Checkout Voxle
+        with:
+          repository: exa211/Voxle
+          token: ${{ secrets.PAT }}
+          path: VoxelEngine
+          submodules: true

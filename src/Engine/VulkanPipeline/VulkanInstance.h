@@ -1,8 +1,7 @@
 #pragma once
 
-#include <glad/vulkan.h>
 #include "GLFW/glfw3.h"
-
+#include <vulkan/vulkan.h>
 
 #include <vector>
 #include <iostream>

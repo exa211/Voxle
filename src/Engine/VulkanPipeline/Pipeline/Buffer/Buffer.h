@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/vulkan.h>
+#include <vulkan/vulkan.h>
 #include <Engine.h>
 #include <Logging/Logger.h>
 #include "VulkanPipeline/Suitability/SuitabilityChecker.h"

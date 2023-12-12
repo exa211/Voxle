@@ -2,25 +2,30 @@ cmake_minimum_required(VERSION 3.27)
 project(Voxle)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXE_LINKER_FLAGS "-static -o3")
 
-option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
-option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
-option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
-option(GLFW_INSTALL "Generate installation target" OFF)
-option(GLFW_DOCUMENT_INTERNALS "Include internals in documentatVulkanPipelineion" OFF)
+find_package(Vulkan REQUIRED)
 
-add_subdirectory(lib/FastNoise2)
-add_subdirectory(lib/glfw)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(lib/glfw binary_dir EXCLUDE_FROM_ALL)
 add_subdirectory(lib/glm)
-add_subdirectory(lib/VulkanMemoryAllocator)
+add_subdirectory(lib/FastNoise2)
 
-add_compile_definitions(GLFW_INCLUDE_NONE)
+## Needed
+include_directories(lib/vulkan)
+include_directories(lib/stb)
+include_directories(lib/FastNoise2/include)
 
-set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui)
+include_directories(src/Engine)
 
-include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
+#IMGUI START
+set(IMGUI_DIR lib/imgui)
+include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
-set(IMGUI_SRC
+set(IMGUI_IMPL
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
         ${IMGUI_DIR}/imgui.cpp
@@ -28,17 +33,17 @@ set(IMGUI_SRC
         ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
         ${IMGUI_DIR}/imgui_widgets.cpp)
-
-include_directories(src/Engine)
-include_directories(lib/glfw/deps)
+#IMGUI END
 
 add_executable(Voxle
-        ${IMGUI_SRC}
+        ${IMGUI_IMPL}
+        main.cpp
         src/Engine/Voxelate.cpp
         src/Engine/Voxelate.h
         src/Engine/VulkanPipeline/VulkanInstance.cpp
         src/Engine/VulkanPipeline/VulkanInstance.h
-        #src/Logging/Logger.h
+        src/Engine/Logging/Logger.h
+        src/Engine/Logging/RenderTimings.h
         src/Engine/Engine.h
         src/Engine/VulkanPipeline/VkSetup.cpp
         src/Engine/VulkanPipeline/VkSetup.h
@@ -68,7 +73,6 @@ add_executable(Voxle
         src/Engine/Color/Color.h
         src/Engine/Camera/Camera.cpp
         src/Engine/Camera/Camera.h
-        #src/Logging/RenderTimings.h
         src/Engine/Texture/Texture.cpp
         src/Engine/Texture/Texture.h
         src/Engine/Resource/ResourceHandler.cpp
@@ -79,4 +83,5 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/Commandbuffer.cpp
         src/Engine/VulkanPipeline/Pipeline/Commandbuffer.h)
 
-target_link_libraries(Voxle glfw glm)
+target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise)
+target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64)

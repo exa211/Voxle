@@ -1,8 +1,11 @@
 #pragma once
 
+#ifndef VOXELATE_ENGINE_USERINTERFACE_H
+#define VOXELATE_ENGINE_USERINTERFACE_H
+
 #include <Engine.h>
 #include <Logging/Logger.h>
-#include "VulkanPipeline/Pipeline/GraphicsPipeline.h"
+#include "../VulkanPipeline/Pipeline/GraphicsPipeline.h"
 #include <Logging/RenderTimings.h>
 
 #include "imgui.h"
@@ -52,7 +55,7 @@ namespace UI {
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    io.Fonts->AddFontFromFileTTF("../Nunito-Regular.ttf", 16);
+    io.Fonts->AddFontFromFileTTF("../res/font/Nunito-Regular.ttf", 16);
 
     ImGui::StyleColorsDark();
     ImGuiStyle &style = ImGui::GetStyle();
@@ -159,3 +162,4 @@ namespace UI {
 
   }
 }
+#endif

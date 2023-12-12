@@ -1,6 +1,13 @@
+#include <Voxelate.h>
 #include <iostream>
 
 int main() {
-  std::cout << "Hello, World!" << std::endl;
-  return 0;
+    Voxelate voxEngine{};
+
+    try {
+        voxEngine.run();
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+    }
+    return 0;
 }

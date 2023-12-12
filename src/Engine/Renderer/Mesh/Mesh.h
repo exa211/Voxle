@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/vulkan.h>
+#include <vulkan/vulkan.h>
 #include "VulkanPipeline/Pipeline/Buffer/Buffer.h"
 #include "VulkanPipeline/Pipeline/PushConstants/GenericPushConstants.h"
 

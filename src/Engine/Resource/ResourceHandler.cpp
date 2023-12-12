@@ -1,5 +1,5 @@
 #include "ResourceHandler.h"
-#include "Logger.h"
+#include "Logging/Logger.h"
 #include "Texture/Texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -9,7 +9,10 @@
 void Resource::loadTexture(Texture &t, const std::string &path) {
   LOG::ignored("Loading image " + path);
   stbi_uc *pixels = stbi_load(path.c_str(), &t.width, &t.height, &t.channels, STBI_rgb_alpha);
-  if (!pixels) LOG::fatal("Could not load image " + path);
+  if (!pixels) {
+    LOG::warn("Could not load image " + path);
+    return;
+  }
 
   VkDeviceSize imageSize = t.width * t.height * 4;
 

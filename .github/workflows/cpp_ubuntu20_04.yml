@@ -24,3 +24,7 @@ jobs:
           token: ${{ secrets.PAT }}
           path: VoxelEngine
           submodules: true
+
+      - name: Build Voxle
+        run: mkdir -p build && cd build cmake && cmake --build cmake-build --target Voxle
+        path: VoxelEngine

@@ -26,4 +26,4 @@ jobs:
           submodules: true
 
       - name: Build Voxle
-        run: mkdir -p VoxelEngine/cmake-build && cmake --build VoxelEngine/cmake-build --target Voxle
+        run: mkdir -p VoxelEngine/cmake-build && cmake VoxelEngine/CMakeLists.txt -B VoxelEngine/cmake-build && cmake --build VoxelEngine/cmake-build --target Voxle

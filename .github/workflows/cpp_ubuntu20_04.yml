@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gcc: ['9']
+        gcc: ['9', '13']
     name: Voxle - GCC ${{ matrix.gcc }}
     steps:
       - name: Install newest git version

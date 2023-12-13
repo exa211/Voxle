@@ -17,13 +17,10 @@ namespace VkSetup {
   void createSurface();
 
   void selectPhysicalDevice();
-
   void createLogicalDevice();
 
   void createSwapchain(bool isResize = false);
-
   void recreateSwapchain(VkDevice& device);
-
   void cleanupOldSwapchain(VkDevice& device);
 
   void createImageViews();
@@ -33,5 +30,4 @@ namespace VkSetup {
   void createDescriptorSets();
 
   void populateDescriptors();
-
 }

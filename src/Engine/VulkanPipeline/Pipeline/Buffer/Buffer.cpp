@@ -129,7 +129,10 @@ void Buffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
   Commandbuffer::endRecordSingleTime(singleUseCmdBuffer);
 }
 
-// Image buffer
+/**
+ * Helper function to specify which part of the buffer is going to be
+ * copied to the VkImage struct.
+ */
 void Buffer::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
   VkCommandBuffer singleUseCmdBuffer = Commandbuffer::recordSingleTime();
 

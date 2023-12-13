@@ -1,8 +1,14 @@
-#include "Texture.h"
+#include "Image.h"
 
-void TextureLoading::createTexture(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-                                   VkImageUsageFlags usage,
-                                   VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory) {
+#include "Engine.h"
+#include "Logging/Logger.h"
+#include "VulkanPipeline/Suitability/SuitabilityChecker.h"
+#include "VulkanPipeline/Pipeline/Commandbuffer.h"
+#include "VulkanPipeline/Pipeline/GraphicsPipeline.h"
+
+void VulkanImage::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+                              VkImageUsageFlags usage,
+                              VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory) {
 
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -27,19 +33,17 @@ void TextureLoading::createTexture(uint32_t width, uint32_t height, VkFormat for
 
   VkMemoryAllocateInfo allocateInfo{};
   allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocateInfo.allocationSize = memRequirements.size;
+  allocateInfo.allocationSize = memRequirements.size; // <- Size of image texture
   allocateInfo.memoryTypeIndex = SuitabilityChecker::findMemoryType(memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(E_Data::i()->vkInstWrapper.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
     LOG::fatal("Could not allocate Image Memory");
 
   vkBindImageMemory(E_Data::i()->vkInstWrapper.device, image, imageMemory, 0);
-
-  transitionImageLayout(image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-void TextureLoading::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-                                           VkImageLayout newLayout) {
+void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+                                        VkImageLayout newLayout) {
   VkCommandBuffer singleUseCmdBuffer = Commandbuffer::recordSingleTime();
 
   VkImageMemoryBarrier barrier{};
@@ -76,7 +80,35 @@ void TextureLoading::transitionImageLayout(VkImage image, VkFormat format, VkIma
     LOG::fatal("Unsupported layout transition. In (Texture.cpp)");
   }
 
-  vkCmdPipelineBarrier(singleUseCmdBuffer, graphicsPipeline.sourceStage, graphicsPipeline.dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+  // Signal pipeline to wait
+  vkCmdPipelineBarrier(singleUseCmdBuffer,
+                       graphicsPipeline.sourceStage,
+                       graphicsPipeline.dstStage,
+                       0, 0, nullptr, 0, nullptr, 1, &barrier);
 
   Commandbuffer::endRecordSingleTime(singleUseCmdBuffer);
+}
+
+VkImageView VulkanImage::createImageView(VkImage image, VkFormat format) {
+
+  VkImageViewCreateInfo viewCreateInfo{};
+  viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewCreateInfo.image = image;
+  viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewCreateInfo.format = format;
+  viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewCreateInfo.subresourceRange.baseMipLevel = 0;
+  viewCreateInfo.subresourceRange.levelCount = 1;
+  viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+  viewCreateInfo.subresourceRange.layerCount = 1;
+
+  VkImageView view;
+  if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &view) != VK_SUCCESS)
+    LOG::fatal("Failed to create Image Views");
+
+  return view;
 }

@@ -7,6 +7,17 @@
 #include <imgui.h>
 #include <Logging/Logger.h>
 
+float fInterp(float start, float end, float alpha) {
+  return (1 - alpha) * start + alpha * end;
+}
+
+glm::vec3 vec3Interp(glm::vec3 start, glm::vec3 end, float alpha) {
+  float x = fInterp(start.x, end.x, alpha);
+  float y = fInterp(start.y, end.y, alpha);
+  float z = fInterp(start.z, end.z, alpha);
+  return {x, y, z};
+}
+
 void Camera::update(GLFWwindow* window, float& deltaTime) {
 
   //TODO: Use custom InputEventDispatchers so we can defer this
@@ -14,8 +25,9 @@ void Camera::update(GLFWwindow* window, float& deltaTime) {
   (void) io;
   if(io.WantCaptureMouse) return;
 
-  if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+  if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     position += (flySpeed * direction) * deltaTime;
+  }
   if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     position -= glm::normalize(glm::cross(direction, up)) * flySpeed * deltaTime;
   if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -43,6 +55,7 @@ void Camera::update(GLFWwindow* window, float& deltaTime) {
 
     long ori = abs(glm::angle(newOrientation, up) - glm::radians(90.0f));
 
+    // Pitch clamping
     if(ori <= glm::radians(90.0f)) {
       direction = newOrientation;
     }

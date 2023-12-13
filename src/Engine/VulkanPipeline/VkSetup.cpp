@@ -252,23 +252,7 @@ void VkSetup::createImageViews() {
   swapChainImageViews.resize(swapChainImages.size());
 
   for (size_t i = 0; i < swapChainImages.size(); i++) {
-    VkImageViewCreateInfo viewCreateInfo{};
-    viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewCreateInfo.image = swapChainImages[i];
-    viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewCreateInfo.format = E_Data::i()->vkInstWrapper.format;
-    viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewCreateInfo.subresourceRange.baseMipLevel = 0;
-    viewCreateInfo.subresourceRange.levelCount = 1;
-    viewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    viewCreateInfo.subresourceRange.layerCount = 1;
-    if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &swapChainImageViews[i]) !=
-        VK_SUCCESS)
-      LOG::fatal("Failed to create Image Views");
+    swapChainImageViews[i] = VulkanImage::createImageView(swapChainImages[i], E_Data::i()->vkInstWrapper.format);
   }
 
   LOG::info("Created Image Views");
@@ -319,7 +303,8 @@ VkDescriptorSetLayout VkSetup::createDescriptorSetLayout() {
   layoutInfo.bindingCount = 1;
   layoutInfo.pBindings = &uboLayoutBinding;
 
-  if(vkCreateDescriptorSetLayout(E_Data::i()->vkInstWrapper.device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+  if (vkCreateDescriptorSetLayout(E_Data::i()->vkInstWrapper.device, &layoutInfo, nullptr, &descriptorSetLayout) !=
+      VK_SUCCESS)
     LOG::fatal("Could not create VkDescriptorSetLayout");
   LOG::info("Created VkDescriptorSetLayout");
 
@@ -340,7 +325,8 @@ void VkSetup::createDescriptorPool() {
   poolInfo.pPoolSizes = &poolSize;
   poolInfo.maxSets = count;
 
-  if(vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr, &E_Data::i()->vkInstWrapper.descriptorPool) != VK_SUCCESS)
+  if (vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
+                             &E_Data::i()->vkInstWrapper.descriptorPool) != VK_SUCCESS)
     LOG::fatal("Could not create VkDescriptorPool");
 }
 
@@ -358,13 +344,14 @@ void VkSetup::createDescriptorSets() {
   std::cout << MAX_FRAMES_IN_FLIGHT << std::endl;
 
   E_Data::i()->vkInstWrapper.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-  if(vkAllocateDescriptorSets(E_Data::i()->vkInstWrapper.device, &allocInfo, E_Data::i()->vkInstWrapper.descriptorSets.data()) != VK_SUCCESS)
+  if (vkAllocateDescriptorSets(E_Data::i()->vkInstWrapper.device, &allocInfo,
+                               E_Data::i()->vkInstWrapper.descriptorSets.data()) != VK_SUCCESS)
     LOG::fatal("Could not create VkDescriptorSets");
   LOG::info("Created VkDescriptorSets");
 }
 
 void VkSetup::populateDescriptors() {
-  for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = E_Data::i()->vkInstWrapper.uniformBuffers[i];
     bufferInfo.offset = 0;

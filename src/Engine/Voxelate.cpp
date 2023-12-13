@@ -162,9 +162,10 @@ int from1D(int x, int y, int z) {
 
 // Initializes the scene
 void Voxelate::initScene() {
-  //TODO: Move into own method
-  Texture leaveTexture{};
-  Resource::loadTexture(leaveTexture, "../res/tex/oak_leaves.png");
+
+  // TODO: Cache textures in map or something else so we can delete these after and free memory
+  VulkanImage::Image leaveTexture{};
+  Resources::createTexture(leaveTexture, "../res/texture/oak_leaves.png");
 
   Scene mainScene{};
 
@@ -187,11 +188,11 @@ void Voxelate::initScene() {
   for (int x = 0; x < CHUNK_SIZE; ++x) {
     for (int y = 0; y < CHUNK_SIZE; ++y) {
       for (int z = 0; z < CHUNK_SIZE; ++z) {
-        int index = from1D(x, y, y);
+        int index = from1D(x, y, z);
         float val = noise[index];
 
         if(val <= 0.12f) {
-          blocks.push_back(1);
+          blocks.push_back(0);
           continue;
         }
 
@@ -199,6 +200,7 @@ void Voxelate::initScene() {
       }
     }
   }
+
 
   int vertIndex{0};
   int indicesCount{0};

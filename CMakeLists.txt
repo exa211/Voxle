@@ -21,6 +21,8 @@ include_directories(lib/FastNoise2/include)
 
 include_directories(src/Engine)
 
+include_directories(src/Engine/VulkanPipeline/Pipeline)
+
 #IMGUI START
 set(IMGUI_DIR lib/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
@@ -73,15 +75,17 @@ add_executable(Voxle
         src/Engine/Color/Color.h
         src/Engine/Camera/Camera.cpp
         src/Engine/Camera/Camera.h
-        src/Engine/Texture/Texture.cpp
-        src/Engine/Texture/Texture.h
         src/Engine/Resource/ResourceHandler.cpp
         src/Engine/Resource/ResourceHandler.h
         src/Engine/VulkanPipeline/Pipeline/PushConstants/GenericPushConstants.h
         src/Engine/VulkanPipeline/Pipeline/RenderPass.cpp
         src/Engine/VulkanPipeline/Pipeline/RenderPass.h
         src/Engine/VulkanPipeline/Pipeline/Commandbuffer.cpp
-        src/Engine/VulkanPipeline/Pipeline/Commandbuffer.h)
+        src/Engine/VulkanPipeline/Pipeline/Commandbuffer.h
+        src/Engine/VulkanPipeline/Pipeline/Image/Image.cpp
+        src/Engine/VulkanPipeline/Pipeline/Image/Image.h
+        src/Engine/World/Block.hpp
+        src/Engine/World/Chunk.cpp)
 
 target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64)

@@ -3,6 +3,8 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
+#include "Image/Image.h"
+
 #include <vector>
 #include <iostream>
 
@@ -31,9 +33,11 @@ public:
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
   // Depth Buffering Images
-  VkImage depthImage;
-  VkDeviceMemory depthImageMemory;
+  VulkanImage::Image depthImage;
   VkImageView depthImageView;
+
+  // Texturing
+  VkImageView textureImageView;
 
   VkExtent2D extent{};
   VkFormat format;

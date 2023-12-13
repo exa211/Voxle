@@ -76,8 +76,6 @@ add_executable(Voxle
         src/Engine/Color/Color.h
         src/Engine/Camera/Camera.cpp
         src/Engine/Camera/Camera.h
-        src/Engine/Texture/Texture.cpp
-        src/Engine/Texture/Texture.h
         src/Engine/Resource/ResourceHandler.cpp
         src/Engine/Resource/ResourceHandler.h
         src/Engine/VulkanPipeline/Pipeline/PushConstants/GenericPushConstants.h
@@ -88,7 +86,7 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/Image/Image.cpp
         src/Engine/VulkanPipeline/Pipeline/Image/Image.h
         src/Engine/World/Block.hpp
-        src/Engine/World/Chunk.cpp)
+        src/Engine/World/Chunk.cpp
         src/Engine/VulkanPipeline/VulkanDebug.h
         src/Engine/VulkanPipeline/VulkanDebug.cpp)
 

@@ -32,7 +32,8 @@ set(IMGUI_IMPL
         ${IMGUI_DIR}/imgui_draw.cpp
         ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
-        ${IMGUI_DIR}/imgui_widgets.cpp)
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        src/Engine/VulkanPipeline/Validation/VulkanValidationLayer.cpp)
 #IMGUI END
 
 add_executable(Voxle
@@ -81,7 +82,9 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/RenderPass.cpp
         src/Engine/VulkanPipeline/Pipeline/RenderPass.h
         src/Engine/VulkanPipeline/Pipeline/Commandbuffer.cpp
-        src/Engine/VulkanPipeline/Pipeline/Commandbuffer.h)
+        src/Engine/VulkanPipeline/Pipeline/Commandbuffer.h
+        src/Engine/VulkanPipeline/VulkanDebug.h
+        src/Engine/VulkanPipeline/VulkanDebug.cpp)
 
 target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64)

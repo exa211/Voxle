@@ -13,6 +13,7 @@
 
 namespace VkSetup {
   void createVulkanInstance();
+  void createDebugMessenger();
 
   void createSurface();
 

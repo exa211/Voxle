@@ -5,14 +5,15 @@
 #include "Suitability/SuitabilityChecker.h"
 #include "Suitability/SwapchainSuitability.h"
 #include "Validation/VulkanValidationLayer.h"
+#include "VulkanDebug.h"
 
 void VkSetup::createVulkanInstance() {
-  if (enableValidation && !VulkanValidation::checkValidationLayerSupport())
+  if (!VulkanValidation::checkValidationLayerSupport())
     LOG::fatal("Using validation layers but found none");
 
   auto extensions = VulkanValidation::getRequireExtensions();
 
-  VkInstance instance;
+  VkInstance instance{};
 
   VkApplicationInfo appInfo{};
   appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -20,7 +21,7 @@ void VkSetup::createVulkanInstance() {
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "Voxelate";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_3;
+  appInfo.apiVersion = VK_API_VERSION_1_0;
 
   //Tell Vulkan what we need
   VkInstanceCreateInfo createInfo{};
@@ -28,38 +29,64 @@ void VkSetup::createVulkanInstance() {
   createInfo.pApplicationInfo = &appInfo;
 
   if (enableValidation) {
-    LOG::warn("Using Vulkan ValidationLayers");
+    LOG::important("Using Vulkan ValidationLayers");
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
   } else {
     createInfo.enabledLayerCount = 0;
   }
 
-  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+  std::cout << extensions.size() << std::endl;
 
   createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
+    uint32_t extensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> vkExtensions(extensionCount);
+
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, vkExtensions.data());
+
+    std::cout << "Available extensions:\n";
+    for (const auto &vkExt: vkExtensions) {
+        std::cout << '\t' << vkExt.extensionName << '\n';
+    }
+
   //Create the Vulkan instance
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create Vulkan Instance.");
-  }
-
-  uint32_t extensionCount = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-  std::vector<VkExtensionProperties> vkExtensions(extensionCount);
-
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, vkExtensions.data());
-
-  std::cout << "Available extensions:\n";
-  for (const auto &vkExt: vkExtensions) {
-    std::cout << '\t' << vkExt.extensionName << '\n';
+      LOG::fatal("Failed to create Vulkan Instance. (VkSetup.cpp)");
   }
 
   //Set the VkInstance to this
   E_Data::i()->vkInstWrapper = VulkanInstance();
   E_Data::i()->vkInstWrapper.vkInstance = instance;
+}
+
+/**
+ *  Creates a VkDebugMessenger so we can get performance leaks
+ *  and other stuff from vulkan.
+ **/
+void VkSetup::createDebugMessenger() {
+  if(!enableValidation) return;
+
+  VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
+  // Next 2 lines is essentially what is going to be logged
+  // In short terms messages will be filtered
+  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+  createInfo.pfnUserCallback = VulkanDebug::debugCallback; // <- static debugCallback()
+  createInfo.pUserData = nullptr;
+
+  if(VulkanDebug::createDebugUtilsMessengerEXT(E_Data::i()->vkInstWrapper.vkInstance,
+                                               &createInfo,
+                                               nullptr,
+                                               &E_Data::i()->vkInstWrapper.debugMessenger) != VK_SUCCESS) {
+    LOG::warn("Could not create VkDebugMessenger skipping ahead.");
+  }
 }
 
 void VkSetup::createSurface() {

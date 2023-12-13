@@ -8,6 +8,9 @@
 
 #include <FastNoise/FastNoise.h>
 
+#include <VulkanPipeline/Validation/VulkanValidationLayer.h>
+#include <VulkanPipeline/VulkanDebug.h>
+
 #include <deque>
 
 const int CHUNK_SIZE{32};
@@ -72,6 +75,7 @@ static void callback_glfwMousePosition(GLFWwindow *window, double x, double y) {
 static void callback_glfwKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if(key == GLFW_KEY_H && action == GLFW_PRESS) {
     LOG::important("pressed key h");
+    //TODO: Implement DebugPipeline
   }
 }
 
@@ -119,6 +123,7 @@ void Voxelate::initWindow() {
 void Voxelate::initVulkan() {
   // Vk Setup Initialization
   VkSetup::createVulkanInstance();
+  VkSetup::createDebugMessenger();
 
   VkSetup::createSurface();
 
@@ -431,6 +436,12 @@ void Voxelate::clean() {
   vkDestroyCommandPool(device, vki.commandPool, nullptr);
 
   vkDestroyDevice(device, nullptr);
+
+  if(enableValidation) {
+    VulkanDebug::destroyDebugUtilsMessengerEXT(vki.vkInstance, vki.debugMessenger, nullptr);
+  }
+
+  vkDestroyInstance(vki.vkInstance, nullptr);
 
   LOG::info("Cleaned everything up");
 }

@@ -18,6 +18,8 @@ class VulkanInstance {
 public:
   VkInstance vkInstance;
 
+  VkDebugUtilsMessengerEXT debugMessenger;
+
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device{};
 

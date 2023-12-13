@@ -34,7 +34,8 @@ set(IMGUI_IMPL
         ${IMGUI_DIR}/imgui_draw.cpp
         ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
-        ${IMGUI_DIR}/imgui_widgets.cpp)
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        src/Engine/VulkanPipeline/Validation/VulkanValidationLayer.cpp)
 #IMGUI END
 
 add_executable(Voxle
@@ -75,6 +76,8 @@ add_executable(Voxle
         src/Engine/Color/Color.h
         src/Engine/Camera/Camera.cpp
         src/Engine/Camera/Camera.h
+        src/Engine/Texture/Texture.cpp
+        src/Engine/Texture/Texture.h
         src/Engine/Resource/ResourceHandler.cpp
         src/Engine/Resource/ResourceHandler.h
         src/Engine/VulkanPipeline/Pipeline/PushConstants/GenericPushConstants.h
@@ -86,6 +89,8 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/Image/Image.h
         src/Engine/World/Block.hpp
         src/Engine/World/Chunk.cpp)
+        src/Engine/VulkanPipeline/VulkanDebug.h
+        src/Engine/VulkanPipeline/VulkanDebug.cpp)
 
 target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64)

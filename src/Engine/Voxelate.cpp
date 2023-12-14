@@ -119,8 +119,8 @@ void Voxelate::initWindow() {
 
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
   const GLFWvidmode *vidMode = glfwGetVideoMode(primaryMonitor);
-  int cX = (vidMode->width / 2) - W_WIDTH / 2;
-  int cY = (vidMode->height / 2) - W_HEIGHT / 2;
+  int cX = (vidMode->width / 2) - static_cast<int>(W_WIDTH / 2);
+  int cY = (vidMode->height / 2) - static_cast<int>(W_HEIGHT / 2);
 
   glfwSetWindowPos(E_Data::i()->window, cX, cY);
 
@@ -236,7 +236,7 @@ void Voxelate::initScene() {
         int blockTop = getBlock(blocks, x, y + 1, z);
         int blockBot = getBlock(blocks, x, y - 1, z);
 
-        glm::vec3 pos{x, y, z};
+        glm::vec<3, int> pos{x, y, z};
 
         // Front face
         if(z == CHUNK_SIZE-1 || blockFront == 0) {
@@ -247,7 +247,7 @@ void Voxelate::initScene() {
             unsigned int vertY = frontFace[vertIndex++] + pos.y;
             unsigned int vertZ = frontFace[vertIndex++] + pos.z;
 
-            verticesCombined.push_back(Vertex{{vertX, vertY, vertZ}, {x*0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX, vertY, vertZ}, {static_cast<float>(x)*0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -263,7 +263,7 @@ void Voxelate::initScene() {
             unsigned int vertX = backFace[vertIndex++] + pos.x;
             unsigned int vertY = backFace[vertIndex++] + pos.y;
             unsigned int vertZ = backFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -279,7 +279,7 @@ void Voxelate::initScene() {
             unsigned int vertX = rightFace[vertIndex++] + pos.x;
             unsigned int vertY = rightFace[vertIndex++] + pos.y;
             unsigned int vertZ = rightFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -295,7 +295,7 @@ void Voxelate::initScene() {
             unsigned int vertX = leftFace[vertIndex++] + pos.x;
             unsigned int vertY = leftFace[vertIndex++] + pos.y;
             unsigned int vertZ = leftFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -311,7 +311,7 @@ void Voxelate::initScene() {
             unsigned int vertX = topFace[vertIndex++] + pos.x;
             unsigned int vertY = topFace[vertIndex++] + pos.y;
             unsigned int vertZ = topFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -327,7 +327,7 @@ void Voxelate::initScene() {
             unsigned int vertX = botFace[vertIndex++] + pos.x;
             unsigned int vertY = botFace[vertIndex++] + pos.y;
             unsigned int vertZ = botFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);

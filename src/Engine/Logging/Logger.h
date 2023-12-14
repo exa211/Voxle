@@ -35,8 +35,26 @@ namespace LOG {
 #define VOXLE_DEBUG_LOGGING
 #endif
 
+#define VOXLE_GET_KEY() std::string(__FILE__) + ":" + std::to_string(__LINE__)
+#define VOXLE_LOGPREFIX voxle::logging::getFileName(__FILE__) << ":" << __LINE__ << " "
 namespace voxle::logging {
 enum class Severity { D, I, W, E, F };
+
+// Constexpr function to extract just the file name from the full path
+inline static constexpr const char* getFileName(const char* path) {
+  const char* file = path;
+  while (*path) {
+#ifdef _WIN32
+    if (*path == '\\') {
+#else
+    if (*path == '/') {
+#endif
+      file = path + 1;
+    }
+    ++path;
+  }
+  return file;
+}
 }
 
 //! Hack to enable macro overloading. Used to overload LOG() macro.
@@ -46,22 +64,21 @@ enum class Severity { D, I, W, E, F };
 #define GET_COUNT(_1, _2, _3, _4, _5, _6, COUNT, ...) COUNT
 #define VA_SIZE(...) GET_COUNT(__VA_ARGS__, 6, 5, 4, 3, 2, 1)
 #define VA_SELECT(NAME, ...) SELECT(NAME, VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
-#define VOXLE_GET_KEY() std::string(__FILE__) + ":" + std::to_string(__LINE__)
 
 //! Overloads
 #define LOG(...) VA_SELECT(LOG, __VA_ARGS__)
 
 #define LOG_EVERY(severity, n, x) voxle::logging::InternalLogCount::getInstance().update(                       \
-      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::EVERY_N) // NOLINT(bugprone-macro-parentheses)
+      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << VOXLE_LOGPREFIX << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::EVERY_N) // NOLINT(bugprone-macro-parentheses)
 #define LOG_FIRST(severity, n, x) voxle::logging::InternalLogCount::getInstance().update(                       \
-      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::FIRST_N) // NOLINT(bugprone-macro-parentheses)
+      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << VOXLE_LOGPREFIX << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::FIRST_N) // NOLINT(bugprone-macro-parentheses)
 #define LOG_TIMED(severity, n, x) voxle::logging::InternalLogCount::getInstance().update(                       \
-      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::TIMED) // NOLINT(bugprone-macro-parentheses)
+      VOXLE_GET_KEY(), n, voxle::logging::InternalLog() << VOXLE_LOGPREFIX << x, voxle::logging::Severity::severity, voxle::logging::PolicyType::TIMED) // NOLINT(bugprone-macro-parentheses)
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
-#define LOG_2(severity, x) voxle::logging::InternalLog(voxle::logging::Severity::severity) << x // NOLINT(bugprone-macro-parentheses)
-#define LOG_3(severity, cond, x) if (cond) voxle::logging::InternalLog(voxle::logging::Severity::severity) << x // NOLINT(bugprone-macro-parentheses)
+#define LOG_2(severity, x) voxle::logging::InternalLog(voxle::logging::Severity::severity) << VOXLE_LOGPREFIX << x // NOLINT(bugprone-macro-parentheses)
+#define LOG_3(severity, cond, x) if (cond) voxle::logging::InternalLog(voxle::logging::Severity::severity) << VOXLE_LOGPREFIX << x // NOLINT(bugprone-macro-parentheses)
 #pragma clang diagnostic pop
 
 namespace voxle::logging {

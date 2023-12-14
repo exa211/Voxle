@@ -45,7 +45,7 @@ namespace UI {
 
     VkDescriptorPool uiDescriptorPool;
     if (vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr, &uiDescriptorPool) != VK_SUCCESS)
-      LOG::fatal("Could not create Engine User Interface");
+      LOG(F, "Could not create Engine User Interface");
 
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -83,7 +83,7 @@ namespace UI {
     std::string iniData = "";
     ImGui::LoadIniSettingsFromMemory(iniData.c_str(), iniData.size());
 
-    LOG::important("Created Engine User Interface");
+    LOG(I, "Created Engine User Interface");
   }
 
   void renderFrameProfiler() {

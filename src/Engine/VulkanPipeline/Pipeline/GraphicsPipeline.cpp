@@ -147,12 +147,12 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
 
   if (vkCreatePipelineLayout(E_Data::i()->vkInstWrapper.device, &pipelineLayoutInfo, nullptr, &layout) !=
       VK_SUCCESS)
-    LOG::fatal("Could not create VkPipelineLayout in GraphicsPipeline.cpp");
+    LOG(F, "Could not create VkPipelineLayout in GraphicsPipeline.cpp");
 
   E_Data::i()->vkInstWrapper.pipelineLayout = layout;
-  LOG::info("Created VkPipelineLayout");
+  LOG(I, "Created VkPipelineLayout");
 
-  if (E_Data::i()->vkInstWrapper.renderPass == NULL) LOG::fatal("VkRenderPass is null, exiting");
+  if (E_Data::i()->vkInstWrapper.renderPass == nullptr) LOG(F, "VkRenderPass is null, exiting");
 
   // Create Graphics Pipeline
   VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -175,16 +175,16 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineInfo.basePipelineIndex = -1;
 
-  LOG::info("Creating Pipeline...");
+  LOG(I, "Creating Pipeline...");
 
   if (vkCreateGraphicsPipelines(E_Data::i()->vkInstWrapper.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
                                 &E_Data::i()->vkInstWrapper.pipeline) != VK_SUCCESS)
-    LOG::fatal("Could not create VkPipeline in GraphicsPipeline.cpp");
-  LOG::info("Created VkPipeline \n\tGraphics Pipeline Creation finished.");
+    LOG(F, "Could not create VkPipeline in GraphicsPipeline.cpp");
+  LOG(I, "Created VkPipeline \n\tGraphics Pipeline Creation finished.");
 
   vkDestroyShaderModule(E_Data::i()->vkInstWrapper.device, vertShaderModule, nullptr);
   vkDestroyShaderModule(E_Data::i()->vkInstWrapper.device, fragShaderModule, nullptr);
-  LOG::warn("Cleaning up shaders");
+  LOG(W, "Cleaning up shaders");
 }
 
 void Pipeline::createFramebuffers() {
@@ -210,10 +210,10 @@ void Pipeline::createFramebuffers() {
 
     if (vkCreateFramebuffer(E_Data::i()->vkInstWrapper.device, &framebufferInfo, nullptr, &buffers[i]) !=
         VK_SUCCESS)
-      LOG::fatal("Error while creating Framebuffers");
+      LOG(F, "Error while creating Framebuffers");
     ++frameBufferCount;
   }
-  LOG::info("Created " + std::to_string(frameBufferCount) + " VkFrameBuffers");
+  LOG(I, "Created " + std::to_string(frameBufferCount) + " VkFrameBuffers");
   E_Data::i()->vkInstWrapper.swapChainFramebuffers = buffers;
 }
 
@@ -230,15 +230,15 @@ void Pipeline::createCommandPool() {
   poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
   if (vkCreateCommandPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
                           &E_Data::i()->vkInstWrapper.commandPool) != VK_SUCCESS)
-    LOG::fatal("Could not create VkCommandPool");
-  LOG::info("Created VkCommandPool");
+    LOG(F, "Could not create VkCommandPool");
+  LOG(I, "Created VkCommandPool");
 
   // IMMEDIATE UPLOAD POOL
 
   if (vkCreateCommandPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
                           &E_Data::i()->vkInstWrapper.immediateUploadPool) != VK_SUCCESS)
-    LOG::fatal("Could not create VkCommandPool");
-  LOG::info("Created VkCommandPool for immediate uploads");
+    LOG(F, "Could not create VkCommandPool");
+  LOG(I, "Created VkCommandPool for immediate uploads");
 }
 
 /**
@@ -279,7 +279,7 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
   beginInfo.pInheritanceInfo = nullptr;
 
   if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-    LOG::fatal("Could not start recording VkCommandBuffer");
+    LOG(F, "Could not start recording VkCommandBuffer");
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -358,7 +358,7 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
-  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) LOG::fatal("Could not end VkCommandBuffer recording");
+  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) LOG(F, "Could not end VkCommandBuffer recording");
 
 //  Mesh& m = SceneManager::i()->curScene.meshesInScene.at(1);
 //
@@ -394,19 +394,20 @@ void Pipeline::createSyncObjects() {
     if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &E_Data::i()->vkInstWrapper.imageAvailableSemas[i])
         || vkCreateSemaphore(device, &semaphoreInfo, nullptr, &E_Data::i()->vkInstWrapper.renderFinishedSemas[i])
         || vkCreateFence(device, &fenceInfo, nullptr, &E_Data::i()->vkInstWrapper.inFlightFences[i])) {
-      LOG::fatal("Could not create synchronization objects (VkSemaphore and VkFence)");
+      LOG(F, "Could not create synchronization objects (VkSemaphore and VkFence)");
     }
   }
-  LOG::info("Created synchronization objects (VkSemaphore and VkFence)");
+  LOG(I, "Created synchronization objects (VkSemaphore and VkFence)");
 
   // IMMEDIATE UPLOAD FENCE
 
   VkFenceCreateInfo uploadFenceInfo{};
   uploadFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-  if (vkCreateFence(device, &uploadFenceInfo, nullptr, &E_Data::i()->vkInstWrapper.immediateUploadFence) != VK_SUCCESS)
-    LOG::fatal("Could not create VkFence for immediate upload");
-  LOG::info("Created VkFence for immediate upload");
+  if (vkCreateFence(device, &uploadFenceInfo, nullptr, &E_Data::i()->vkInstWrapper.immediateUploadFence) != VK_SUCCESS) {
+    LOG(F, "Could not create VkFence for immediate upload");
+  }
+  LOG(I, "Created VkFence for immediate upload");
 }
 
 void Pipeline::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) {
@@ -420,7 +421,7 @@ void Pipeline::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   beginInfo.pInheritanceInfo = nullptr;
   if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
-    LOG::fatal("Could not one-time submit VkCommandBuffer");
+    LOG(F, "Could not one-time submit VkCommandBuffer");
 
   function(cmd); // Execute the given function with the commmand buffer
 
@@ -437,7 +438,7 @@ void Pipeline::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
   submitInfo.pSignalSemaphores = nullptr;
 
   if (vkQueueSubmit(E_Data::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
-    LOG::fatal("Could not Queue Submit one-time command");
+    LOG(F, "Could not Queue Submit one-time command");
 
   vkWaitForFences(device, 1, &fence, true, 9999);
   vkResetFences(device, 1, &fence);

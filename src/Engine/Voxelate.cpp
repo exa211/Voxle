@@ -81,13 +81,13 @@ static void callback_glfwMousePosition(GLFWwindow *window, double x, double y) {
 
 static void callback_glfwKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if(key == GLFW_KEY_H && action == GLFW_PRESS) {
-    LOG::important("pressed key h");
+    LOG(I, "pressed key h");
     //TODO: Implement DebugPipeline
   }
 }
 
 void Voxelate::run() {
-  LOG::info("Running engine...");
+  LOG(I, "Running engine...");
   initEngine();
 }
 
@@ -183,7 +183,7 @@ int from1D(int x, int y, int z) {
 void Voxelate::initScene() {
   Scene mainScene{};
 
-  LOG::important("FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
+  LOG(I, "FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
 
   auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
   auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
@@ -348,7 +348,7 @@ void Voxelate::initScene() {
   combinedMesh.indexBuffer = Buffer::createIndexBuffer(indicesCombined);
   mainScene.meshesInScene.push_back(combinedMesh);
 
-  LOG::important("Pushing mesh into scene");
+  LOG(I, "Pushing mesh into scene");
 
   SceneManager::i()->curScene = mainScene;
   SceneManager::i()->scenesLoaded.push_back(mainScene);
@@ -460,5 +460,5 @@ void Voxelate::clean() {
 
   vkDestroyInstance(vki.vkInstance, nullptr);
 
-  LOG::info("Cleaned everything up");
+  LOG(I, "Cleaned everything up");
 }

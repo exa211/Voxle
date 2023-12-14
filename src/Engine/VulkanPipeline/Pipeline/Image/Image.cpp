@@ -26,7 +26,7 @@ void VulkanImage::createImage(uint32_t width, uint32_t height, VkFormat format, 
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   if (vkCreateImage(E_Data::i()->vkInstWrapper.device, &imageInfo, nullptr, &image) != VK_SUCCESS)
-    LOG::fatal("Failed to create VkImage");
+  LOG(F, "Failed to create VkImage");
 
   VkMemoryRequirements memRequirements;
   vkGetImageMemoryRequirements(E_Data::i()->vkInstWrapper.device, image, &memRequirements);
@@ -37,7 +37,7 @@ void VulkanImage::createImage(uint32_t width, uint32_t height, VkFormat format, 
   allocateInfo.memoryTypeIndex = SuitabilityChecker::findMemoryType(memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(E_Data::i()->vkInstWrapper.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
-    LOG::fatal("Could not allocate Image Memory");
+    LOG(F, "Could not allocate Image Memory");
 
   vkBindImageMemory(E_Data::i()->vkInstWrapper.device, image, imageMemory, 0);
 }
@@ -94,7 +94,7 @@ void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageL
     // Earliest stage of rendering because we want to depth test only against bare vertices and nothing else
     graphicsPipeline.dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
-    LOG::warn("Currently transitioning into unsupported layout (" + std::string(__FILE__) + ")");
+    LOG(W, "Currently transitioning into unsupported layout");
   }
 
   // Signal pipeline to wait
@@ -107,9 +107,7 @@ void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageL
 }
 
 void VulkanImage::createImageView(VkImage image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectFlag) {
-
-  if(image == VK_NULL_HANDLE)
-    LOG::warn("Image is NULL (createImageView Image.cpp)");
+  LOG(W, image == VK_NULL_HANDLE, "Image is NULL (createImageView Image.cpp)");
 
   VkImageViewCreateInfo viewCreateInfo{};
   viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -127,7 +125,7 @@ void VulkanImage::createImageView(VkImage image, VkImageView& imageView, VkForma
   viewCreateInfo.subresourceRange.layerCount = 1;
 
   if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &imageView) != VK_SUCCESS)
-    LOG::fatal("Failed to create Image Views");
+    LOG(F, "Failed to create Image Views");
 }
 
 /**
@@ -168,5 +166,5 @@ void VulkanImage::Sampler::createTextureSampler(VkSampler& sampler, VkFilter fil
   samplerInfo.maxLod = 0.0f;
 
   if(vkCreateSampler(E_Data::i()->vkInstWrapper.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
-    LOG::fatal("Sampler could not be created (Image.cpp)");
+    LOG(F, "Sampler could not be created (Image.cpp)");
 }

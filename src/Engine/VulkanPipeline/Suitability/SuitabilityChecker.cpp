@@ -41,7 +41,7 @@ uint32_t SuitabilityChecker::findMemoryType(uint32_t typeFilter, VkMemoryPropert
     }
   }
 
-  LOG::fatal("Cannot find suitable memory type on selected GPU");
+  LOG(F, "Cannot find suitable memory type on selected GPU");
   return 0;
 }
 
@@ -58,7 +58,7 @@ VkFormat SuitabilityChecker::findSupportedDepthFormat(const std::vector<VkFormat
     }
   }
 
-  LOG::fatal("Could not find a supported depth buffer format");
+  LOG(F, "Could not find a supported depth buffer format");
 }
 
 VkFormat SuitabilityChecker::getSupportedDepthFormat() {

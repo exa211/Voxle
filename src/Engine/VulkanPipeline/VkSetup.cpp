@@ -9,7 +9,7 @@
 
 void VkSetup::createVulkanInstance() {
   if (!VulkanValidation::checkValidationLayerSupport())
-    LOG::fatal("Using validation layers but found none");
+    LOG(F, "Using validation layers but found none");
 
   auto extensions = VulkanValidation::getRequireExtensions();
 
@@ -29,7 +29,7 @@ void VkSetup::createVulkanInstance() {
   createInfo.pApplicationInfo = &appInfo;
 
   if (enableValidation) {
-    LOG::important("Using Vulkan ValidationLayers");
+    LOG(I, "Using Vulkan ValidationLayers");
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
   } else {
@@ -55,7 +55,7 @@ void VkSetup::createVulkanInstance() {
 
   //Create the Vulkan instance
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-      LOG::fatal("Failed to create Vulkan Instance. (VkSetup.cpp)");
+      LOG(F, "Failed to create Vulkan Instance. (VkSetup.cpp)");
   }
 
   //Set the VkInstance to this
@@ -85,14 +85,14 @@ void VkSetup::createDebugMessenger() {
                                                &createInfo,
                                                nullptr,
                                                &E_Data::i()->vkInstWrapper.debugMessenger) != VK_SUCCESS) {
-    LOG::warn("Could not create VkDebugMessenger skipping ahead.");
+    LOG(W, "Could not create VkDebugMessenger skipping ahead.");
   }
 }
 
 void VkSetup::createSurface() {
   if (glfwCreateWindowSurface(E_Data::i()->vkInstWrapper.vkInstance, E_Data::i()->window, nullptr,
                               &E_Data::i()->vkInstWrapper.surface) == VK_SUCCESS) {
-    LOG::info("Created Render surface via glfwCreateWindowSurface.");
+    LOG(I, "Created Render surface via glfwCreateWindowSurface.");
   }
 }
 
@@ -102,7 +102,7 @@ void VkSetup::selectPhysicalDevice() {
   uint32_t deviceCount = 0;
   vkEnumeratePhysicalDevices(E_Data::i()->vkInstWrapper.vkInstance, &deviceCount, nullptr);
 
-  if (deviceCount == 0) LOG::fatal("No GPU's detected with Vulkan support.");
+  if (deviceCount == 0) LOG(F, "No GPU's detected with Vulkan support.");
 
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(E_Data::i()->vkInstWrapper.vkInstance, &deviceCount, devices.data());
@@ -134,7 +134,7 @@ void VkSetup::selectPhysicalDevice() {
     // Checks if the graphics device supports a swapchain
     SwapChainSupportDetails swapChainSupport = SwapchainSuitability::querySwapChainDetails(device, surface);
     if (swapChainSupport.formats.empty() && swapChainSupport.presentModes.empty()) rating = 0;
-    LOG::info("Using physical device, supports SwapChains");
+    LOG(I, "Using physical device, supports SwapChains");
 
     cards.insert(std::make_pair(rating, device));
   }
@@ -146,9 +146,9 @@ void VkSetup::selectPhysicalDevice() {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(deviceSelected, &properties);
 
-    LOG::info("Using physical device: " + std::string(properties.deviceName));
+    LOG(I, "Using physical device: " + std::string(properties.deviceName));
   } else {
-    LOG::fatal("No GPU's detected with suitable API requirements.");
+    LOG(F, "No GPU's detected with suitable API requirements.");
   }
 }
 
@@ -157,7 +157,7 @@ void VkSetup::createLogicalDevice() {
   VkSurfaceKHR &surface = E_Data::i()->vkInstWrapper.surface;
   VkDevice device = nullptr;
 
-  if (physicalDevice == nullptr) LOG::fatal("No physical device is set");
+  if (physicalDevice == nullptr) LOG(F, "No physical device is set");
   QueueFamilyIndices indices = QueueHelper::findQueueFamilies(physicalDevice, surface);
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -195,14 +195,14 @@ void VkSetup::createLogicalDevice() {
 
   // Logical Device creation
   if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
-    LOG::fatal("Failed to create a Logical Device");
+    LOG(F, "Failed to create a Logical Device");
 
   // Create Device Queues
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &E_Data::i()->vkInstWrapper.graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &E_Data::i()->vkInstWrapper.presentQueue);
 
   E_Data::i()->vkInstWrapper.device = device;
-  LOG::info("Created Device Queues");
+  LOG(I, "Created Device Queues");
 }
 
 void VkSetup::createSwapchain(bool isResize) {
@@ -264,18 +264,18 @@ void VkSetup::createSwapchain(bool isResize) {
   swapCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
   if (vkCreateSwapchainKHR(device, &swapCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
-    LOG::fatal("Could not create Swapchain");
-  if (!isResize) LOG::info("Created Swapchain");
+    LOG(F, "Could not create Swapchain");
+  if (!isResize) LOG(I, "Created Swapchain");
 
   vkGetSwapchainImagesKHR(device, swapChain, &imageQueryCount, nullptr);
   swapChainImages.resize(imageQueryCount);
   vkGetSwapchainImagesKHR(device, swapChain, &imageQueryCount, swapChainImages.data());
-  if (!isResize) LOG::info("Resized std::vector<VkImage> swapChainImages");
+  if (!isResize) LOG(I, "Resized std::vector<VkImage> swapChainImages");
 
   E_Data::i()->vkInstWrapper.extent = extent;
   E_Data::i()->vkInstWrapper.format = surfaceFormat.format;
   E_Data::i()->vkInstWrapper.swapChain = swapChain;
-  if (!isResize) LOG::info("Set VkExtent2D and VkFormat in VulkanInstance");
+  if (!isResize) LOG(I, "Set VkExtent2D and VkFormat in VulkanInstance");
 }
 
 void VkSetup::createImageViews() {
@@ -287,11 +287,11 @@ void VkSetup::createImageViews() {
   for (size_t i = 0; i < swapChainImages.size(); i++)
     VulkanImage::createImageView(swapChainImages[i], swapChainImageViews[i], E_Data::i()->vkInstWrapper.format);
 
-  LOG::info("Created Image Views");
+  LOG(I, "Created Image Views");
 }
 
 void VkSetup::createSampler() {
-  LOG::info("Created Main Texture Sampler (VkSetup.cpp)");
+  LOG(I, "Created Main Texture Sampler (VkSetup.cpp)");
   VulkanImage::Sampler::createTextureSampler(E_Data::i()->vkInstWrapper.mainSampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 }
 
@@ -354,8 +354,8 @@ VkDescriptorSetLayout VkSetup::createDescriptorSetLayout() {
 
   if (vkCreateDescriptorSetLayout(E_Data::i()->vkInstWrapper.device, &layoutInfo, nullptr, &descriptorSetLayout) !=
       VK_SUCCESS)
-    LOG::fatal("Could not create VkDescriptorSetLayout");
-  LOG::info("Created VkDescriptorSetLayout");
+    LOG(F, "Could not create VkDescriptorSetLayout");
+  LOG(I, "Created VkDescriptorSetLayout");
 
   E_Data::i()->vkInstWrapper.descriptorSetLayout = descriptorSetLayout;
   return descriptorSetLayout;
@@ -378,7 +378,7 @@ void VkSetup::createDescriptorPool() {
 
   if (vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
                              &E_Data::i()->vkInstWrapper.descriptorPool) != VK_SUCCESS)
-    LOG::fatal("Could not create VkDescriptorPool");
+    LOG(F, "Could not create VkDescriptorPool");
 }
 
 void VkSetup::createDescriptorSets() {
@@ -397,8 +397,8 @@ void VkSetup::createDescriptorSets() {
   E_Data::i()->vkInstWrapper.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
   if (vkAllocateDescriptorSets(E_Data::i()->vkInstWrapper.device, &allocInfo,
                                E_Data::i()->vkInstWrapper.descriptorSets.data()) != VK_SUCCESS)
-    LOG::fatal("Could not create VkDescriptorSets");
-  LOG::info("Created VkDescriptorSets");
+    LOG(F, "Could not create VkDescriptorSets");
+  LOG(I, "Created VkDescriptorSets");
 }
 
 void VkSetup::populateDescriptors(VulkanImage::InternalImage& image) {

@@ -8,7 +8,7 @@ VkShaderModule Shader::Module::createShaderModule(const std::vector<char> &code)
 
   VkShaderModule shaderModule{};
   if(vkCreateShaderModule(E_Data::i()->vkInstWrapper.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    LOG::fatal("Failed to create Shader Module");
+    LOG(F, "Failed to create Shader Module");
 
   return shaderModule;
 }

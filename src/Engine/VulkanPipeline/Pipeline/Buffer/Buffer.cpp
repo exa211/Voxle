@@ -97,8 +97,9 @@ Buffer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryProper
   bufferInfo.usage = usage;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-    LOG::fatal("Could not create VertexBuffer");
+  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+    LOG(F, "Could not create VertexBuffer");
+  }
 
   VkMemoryRequirements memoryRequirements;
   vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
@@ -109,8 +110,9 @@ Buffer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryProper
   allocInfo.memoryTypeIndex = SuitabilityChecker::findMemoryType(memoryRequirements.memoryTypeBits, propFlags);
 
   // Allocate the buffer memory TODO: Integrate VMA into this so we can use memoryOffset in vkBindBufferMemory
-  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-    LOG::fatal("Could not allocate VkDeviceMemory for VkBuffer");
+  if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+    LOG(F, "Could not allocate VkDeviceMemory for VkBuffer");
+  }
 
   // Tells the GPU that the device memory corresponds to the buffer
   vkBindBufferMemory(device, buffer, bufferMemory, 0);

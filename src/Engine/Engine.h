@@ -16,7 +16,7 @@
 
 class E_Data {
 public:
-    const std::string ver = "1.0.0-012";
+    const std::string ver = "1.0.0";
 
     std::string title;
     int w_frameBuffer, h_frameBuffer;

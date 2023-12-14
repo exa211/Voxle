@@ -9,6 +9,7 @@
 struct Vertex {
   glm::vec3 pos;
   glm::vec3 col;
+  glm::vec2 uv;
 
   static VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription{};
@@ -18,62 +19,26 @@ struct Vertex {
     return bindingDescription;
   }
 
-  static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-    std::array<VkVertexInputAttributeDescription, 2> attributeDesc{};
+  static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+    std::array<VkVertexInputAttributeDescription, 3> attributeDesc{};
+
+    // Vertex Position
     attributeDesc[0].binding = 0;
     attributeDesc[0].location = 0;
     attributeDesc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDesc[0].offset = offsetof(Vertex, pos);
 
+    // Vertex Color
     attributeDesc[1].binding = 0;
     attributeDesc[1].location = 1;
     attributeDesc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDesc[1].offset = offsetof(Vertex, col);
+
+    // Texture Coords | UV's
+    attributeDesc[2].binding = 0;
+    attributeDesc[2].location = 2;
+    attributeDesc[2].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDesc[2].offset = offsetof(Vertex, uv);
     return attributeDesc;
   }
-};
-
-const std::vector<uint32_t> frontVerts = {
-  0, 1, 1,
-  1, 1, 1,
-  1, 1, 0,
-  0, 1, 0
-};
-
-const std::vector<uint32_t> backVerts = {
-  0, 0, 0,
-  1, 0, 0,
-  1, 0, 1,
-  0, 0, 1
-};
-
-const std::vector<uint32_t> botVerts = {
-  1, 0, 0,
-  0, 0, 0,
-  0, 1, 0,
-  1, 1, 0
-};
-
-const std::vector<uint32_t> topVerts = {
-  0, 0, 1,
-  1, 0, 1,
-  1, 1, 1,
-  0, 1, 1
-};
-
-const std::vector<uint32_t> rightVerts = {
-  0, 0, 0,
-  0, 0, 1,
-  0, 1, 1,
-  0, 1, 0
-};
-const std::vector<uint32_t> leftVerts = {
-  1, 0, 1,
-  1, 0, 0,
-  1, 1, 0,
-  1, 1, 1
-};
-
-const std::vector<uint16_t> faceIndices = {
-  0, 1, 2, 2, 3, 0
 };

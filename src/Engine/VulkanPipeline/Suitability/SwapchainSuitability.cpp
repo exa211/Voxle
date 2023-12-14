@@ -44,21 +44,21 @@ VkExtent2D SwapchainSuitability::chooseExtent(VkSurfaceCapabilitiesKHR &caps, in
 VkSurfaceFormatKHR SwapchainSuitability::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
   for (const auto& format : availableFormats) {
     if (format.format == VK_FORMAT_R32G32B32A32_SFLOAT && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-      LOG::warn("Using Surface Format: " + std::to_string(format.format));
+      LOG::important("Using Surface Format: " + std::to_string(format.format));
       return format;
     }
   }
-  LOG::warn("Using Surface Format: " + std::to_string(availableFormats[0].format));
+  LOG::important("Using Surface Format: " + std::to_string(availableFormats[0].format));
   return availableFormats[0];
 }
 
 VkPresentModeKHR SwapchainSuitability::choosePresentMode(const std::vector<VkPresentModeKHR> &availableModes) {
   for (const auto& mode : availableModes) {
-    LOG::warn("Available PRESENT MODE: " + std::to_string(mode));
+    LOG::important("Available PRESENT MODE: " + std::to_string(mode));
     if (mode == VK_PRESENT_MODE_FIFO_KHR) {
       return mode;
     }
   }
-  LOG::warn("Using PRESENT MODE: " + std::to_string(availableModes[0]));
+  LOG::important("Using PRESENT MODE: " + std::to_string(availableModes[0]));
   return VK_PRESENT_MODE_FIFO_KHR;
 }

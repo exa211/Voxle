@@ -4,10 +4,14 @@
 
 namespace VulkanImage {
 
+  struct InternalImage {
+    VkImage vkImage;
+    VkDeviceMemory vkImageMemory;
+    VkImageView vkImageView;
+  };
+
   struct Image {
-    VkImage image;
-    VkDeviceMemory imageMemory;
-    VkImageView view;
+    InternalImage image;
     int width;
     int height;
     int channels;
@@ -18,6 +22,13 @@ namespace VulkanImage {
 
   void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-  VkImageView createImageView(VkImage image, VkFormat format);
+  void createImageView(VkImage image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectFlag = VK_IMAGE_ASPECT_COLOR_BIT);
+
+  namespace Sampler {
+
+    void createTextureSampler(VkSampler &sampler, VkFilter filter, VkSamplerAddressMode repeatMode);
+
+  }
+
 }
 

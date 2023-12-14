@@ -61,6 +61,16 @@ void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageL
   barrier.subresourceRange.baseArrayLayer = 0;
   barrier.subresourceRange.layerCount = 1;
 
+  // Depth Format | Depth Stencil
+  if(newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    if(SuitabilityChecker::hasDepthStencilComponent(format)) {
+      barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+  } else {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+
   if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -76,8 +86,15 @@ void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageL
 
     graphicsPipeline.sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     graphicsPipeline.dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    graphicsPipeline.sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    // Earliest stage of rendering because we want to depth test only against bare vertices and nothing else
+    graphicsPipeline.dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
-    LOG::fatal("Unsupported layout transition. In (Texture.cpp)");
+    LOG::warn("Currently transitioning into unsupported layout (" + std::string(__FILE__) + ")");
   }
 
   // Signal pipeline to wait
@@ -89,7 +106,10 @@ void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageL
   Commandbuffer::endRecordSingleTime(singleUseCmdBuffer);
 }
 
-VkImageView VulkanImage::createImageView(VkImage image, VkFormat format) {
+void VulkanImage::createImageView(VkImage image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectFlag) {
+
+  if(image == VK_NULL_HANDLE)
+    LOG::warn("Image is NULL (createImageView Image.cpp)");
 
   VkImageViewCreateInfo viewCreateInfo{};
   viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -100,15 +120,53 @@ VkImageView VulkanImage::createImageView(VkImage image, VkFormat format) {
   viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
   viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
   viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-  viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewCreateInfo.subresourceRange.aspectMask = aspectFlag;
   viewCreateInfo.subresourceRange.baseMipLevel = 0;
   viewCreateInfo.subresourceRange.levelCount = 1;
   viewCreateInfo.subresourceRange.baseArrayLayer = 0;
   viewCreateInfo.subresourceRange.layerCount = 1;
 
-  VkImageView view;
-  if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &view) != VK_SUCCESS)
+  if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &imageView) != VK_SUCCESS)
     LOG::fatal("Failed to create Image Views");
+}
 
-  return view;
+/**
+ *  Creates a TextureSampler with given settings,
+ *  repeatMode is for UV(W) tiling
+ **/
+void VulkanImage::Sampler::createTextureSampler(VkSampler& sampler, VkFilter filter,
+                                                VkSamplerAddressMode repeatMode) {
+  VkSamplerCreateInfo samplerInfo{};
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.magFilter = filter;
+  samplerInfo.minFilter = filter;
+  // Consider making new params for every single coord.
+  samplerInfo.addressModeU = repeatMode;
+  samplerInfo.addressModeV = repeatMode;
+  samplerInfo.addressModeW = repeatMode;
+
+  VkPhysicalDeviceProperties devicePropsAnis{};
+  vkGetPhysicalDeviceProperties(E_Data::i()->vkInstWrapper.physicalDevice, &devicePropsAnis);
+
+  samplerInfo.anisotropyEnable = VK_TRUE; // <- I personally think this should always be ton
+  // I think we should later implement settings for this because this can get performance heavy on older cards!
+  samplerInfo.maxAnisotropy = devicePropsAnis.limits.maxSamplerAnisotropy;
+
+  // UV Stuffs
+  // Border Color BLACK for when the uv is going beyond 1.0 coordinate
+  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE; // <- Don't really know what this looks like...
+
+  // Can get interesting in shadow mapping later
+  samplerInfo.compareEnable = VK_FALSE;
+  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+  // Mip-mapping I think this explains itself.
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  samplerInfo.mipLodBias = 0.0f;
+  samplerInfo.minLod = 0.0f;
+  samplerInfo.maxLod = 0.0f;
+
+  if(vkCreateSampler(E_Data::i()->vkInstWrapper.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+    LOG::fatal("Sampler could not be created (Image.cpp)");
 }

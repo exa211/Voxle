@@ -28,18 +28,18 @@ public:
   VkQueue graphicsQueue{};
   VkQueue presentQueue{};
 
-  // Render Images
+  // SwapChain Images
   VkSwapchainKHR swapChain;
+  //std::vector<VulkanImage::InternalImage> swapChainImages;
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
   std::vector<VkFramebuffer> swapChainFramebuffers;
 
   // Depth Buffering Images
-  VulkanImage::Image depthImage;
-  VkImageView depthImageView;
+  VulkanImage::InternalImage depthImage;
 
   // Texturing
-  VkImageView textureImageView;
+  VkSampler mainSampler;
 
   VkExtent2D extent{};
   VkFormat format;

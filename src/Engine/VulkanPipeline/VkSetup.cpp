@@ -175,7 +175,13 @@ void VkSetup::createLogicalDevice() {
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
+  // Query our device features so we can enable them
+  VkPhysicalDeviceFeatures deviceFeaturesStruct;
+  vkGetPhysicalDeviceFeatures(E_Data::i()->vkInstWrapper.physicalDevice, &deviceFeaturesStruct);
+
+  // Enable device features
   VkPhysicalDeviceFeatures deviceFeatures{};
+  deviceFeatures.samplerAnisotropy = deviceFeaturesStruct.samplerAnisotropy;
 
   // Create Logical Device Info
   VkDeviceCreateInfo createInfo{};
@@ -278,11 +284,15 @@ void VkSetup::createImageViews() {
 
   swapChainImageViews.resize(swapChainImages.size());
 
-  for (size_t i = 0; i < swapChainImages.size(); i++) {
-    swapChainImageViews[i] = VulkanImage::createImageView(swapChainImages[i], E_Data::i()->vkInstWrapper.format);
-  }
+  for (size_t i = 0; i < swapChainImages.size(); i++)
+    VulkanImage::createImageView(swapChainImages[i], swapChainImageViews[i], E_Data::i()->vkInstWrapper.format);
 
   LOG::info("Created Image Views");
+}
+
+void VkSetup::createSampler() {
+  LOG::info("Created Main Texture Sampler (VkSetup.cpp)");
+  VulkanImage::Sampler::createTextureSampler(E_Data::i()->vkInstWrapper.mainSampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 }
 
 void VkSetup::recreateSwapchain(VkDevice &device) {
@@ -299,6 +309,7 @@ void VkSetup::recreateSwapchain(VkDevice &device) {
 
   createSwapchain(true);
   createImageViews();
+  Pipeline::createDepthBufferingObjects();
   Pipeline::createFramebuffers();
 }
 
@@ -315,6 +326,8 @@ void VkSetup::cleanupOldSwapchain(VkDevice &device) {
 }
 
 VkDescriptorSetLayout VkSetup::createDescriptorSetLayout() {
+
+  // Uniform buffer object layout binding
   VkDescriptorSetLayoutBinding uboLayoutBinding{};
   uboLayoutBinding.binding = 0;
   uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -322,13 +335,22 @@ VkDescriptorSetLayout VkSetup::createDescriptorSetLayout() {
   uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
   uboLayoutBinding.pImmutableSamplers = nullptr;
 
-  VkDescriptorSetLayout descriptorSetLayout;
-  VkPipelineLayout pipelineLayout;
+  // TextureSampler layout binding
+  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+  samplerLayoutBinding.binding = 1;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+  std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
 
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &uboLayoutBinding;
+  layoutInfo.bindingCount = static_cast<int>(bindings.size());
+  layoutInfo.pBindings = bindings.data();
+
+  VkDescriptorSetLayout descriptorSetLayout;
 
   if (vkCreateDescriptorSetLayout(E_Data::i()->vkInstWrapper.device, &layoutInfo, nullptr, &descriptorSetLayout) !=
       VK_SUCCESS)
@@ -342,15 +364,17 @@ VkDescriptorSetLayout VkSetup::createDescriptorSetLayout() {
 void VkSetup::createDescriptorPool() {
   auto count = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-  VkDescriptorPoolSize poolSize{};
-  poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSize.descriptorCount = count;
+  std::array<VkDescriptorPoolSize, 2> poolSizes{};
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[0].descriptorCount = count;
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[1].descriptorCount = count;
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes = &poolSize;
-  poolInfo.maxSets = count;
+  poolInfo.poolSizeCount = static_cast<int>(poolSizes.size());
+  poolInfo.maxSets = static_cast<int>(poolSizes.size());
+  poolInfo.pPoolSizes = poolSizes.data();
 
   if (vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
                              &E_Data::i()->vkInstWrapper.descriptorPool) != VK_SUCCESS)
@@ -377,24 +401,36 @@ void VkSetup::createDescriptorSets() {
   LOG::info("Created VkDescriptorSets");
 }
 
-void VkSetup::populateDescriptors() {
+void VkSetup::populateDescriptors(VulkanImage::InternalImage& image) {
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = E_Data::i()->vkInstWrapper.uniformBuffers[i];
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = E_Data::i()->vkInstWrapper.descriptorSets[i];
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-    descriptorWrite.pImageInfo = nullptr;
-    descriptorWrite.pTexelBufferView = nullptr;
-    vkUpdateDescriptorSets(E_Data::i()->vkInstWrapper.device, 1, &descriptorWrite, 0, nullptr);
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = image.vkImageView;
+    imageInfo.sampler = E_Data::i()->vkInstWrapper.mainSampler;
 
+    std::array<VkWriteDescriptorSet, 2> writes{};
+
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstSet = E_Data::i()->vkInstWrapper.descriptorSets[i];
+    writes[0].dstBinding = 0;
+    writes[0].dstArrayElement = 0;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writes[0].descriptorCount = 1;
+    writes[0].pBufferInfo = &bufferInfo;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstSet = E_Data::i()->vkInstWrapper.descriptorSets[i];
+    writes[1].dstBinding = 1;
+    writes[1].dstArrayElement = 0;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[1].descriptorCount = 1;
+    writes[1].pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(E_Data::i()->vkInstWrapper.device, static_cast<int>(writes.size()), writes.data(), 0, nullptr);
   }
 }

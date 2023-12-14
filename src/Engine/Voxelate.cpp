@@ -13,20 +13,12 @@
 
 #include <deque>
 
-const int CHUNK_SIZE{32};
+const int CHUNK_SIZE{64};
 
 //This is kinda temporary
 unsigned int faceIndicesTemp[] = {
   0, 1, 2,
   2, 3, 0
-};
-
-// FRONT FACE ------
-std::vector<uint8_t> frontFace = {
-  0, 0, 1,// 0 lower left
-  1, 0, 1, // 1 lower right
-  1, 1, 1, // 2 upper right
-  0, 1, 1, // 3 upper left
 };
 // BACK FACE ------
 std::vector<uint8_t> backFace = {
@@ -64,6 +56,21 @@ std::vector<uint8_t> rightFace = {
   1, 1, 1,
 };
 
+// FRONT FACE ------
+std::vector<uint8_t> frontFace = {
+  0, 0, 1,// 0 lower left
+  1, 0, 1, // 1 lower right
+  1, 1, 1, // 2 upper right
+  0, 1, 1, // 3 upper left
+};
+
+std::vector<glm::vec2> uvs = {
+  {0, 0},
+  {1, 0},
+  {1, 1},
+  {0, 1}
+};
+
 static void callback_glfwWindowResized(GLFWwindow *window, int w, int h) {
   E_Data::i()->vkInstWrapper.framebufferWasResized = true;
 }
@@ -90,7 +97,7 @@ void Voxelate::initEngine() {
 
   initScene();
 
-  initGui(); //<- Come back to this after VkDescriptorPools
+  initGui();
   loop();
   clean();
 }
@@ -130,23 +137,30 @@ void Voxelate::initVulkan() {
   VkSetup::selectPhysicalDevice();
   VkSetup::createLogicalDevice();
 
+  Pipeline::createCommandPool();
+
   VkSetup::createSwapchain();
   VkSetup::createImageViews();
 
-  VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();
+  VkSetup::createSampler();
 
+  // TODO: Cache textures in map or something else so we can delete these after and free memory
+  VulkanImage::Image leaveTexture{};
+  Resources::createTexture(leaveTexture, "../res/texture/dirt.png");
+
+  // Descriptors
+  VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();
   VkSetup::createDescriptorPool();
   VkSetup::createDescriptorSets();
-  VkSetup::populateDescriptors();
+  VkSetup::populateDescriptors(leaveTexture.image);
+
+  Pipeline::createDepthBufferingObjects();
 
   // Graphics Pipeline
   RenderPass::create();
   Pipeline::createGraphicsPipeline(descriptorLayout);
+
   Pipeline::createFramebuffers();
-
-  Pipeline::createCommandPool();
-
-  Pipeline::createDepthBufferingObjects();
 
   Commandbuffer::create();
 
@@ -167,11 +181,6 @@ int from1D(int x, int y, int z) {
 
 // Initializes the scene
 void Voxelate::initScene() {
-
-  // TODO: Cache textures in map or something else so we can delete these after and free memory
-  VulkanImage::Image leaveTexture{};
-  Resources::createTexture(leaveTexture, "../res/texture/oak_leaves.png");
-
   Scene mainScene{};
 
   LOG::important("FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
@@ -232,11 +241,13 @@ void Voxelate::initScene() {
         // Front face
         if(z == CHUNK_SIZE-1 || blockFront == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
+
             unsigned int vertX = frontFace[vertIndex++] + pos.x;
             unsigned int vertY = frontFace[vertIndex++] + pos.y;
             unsigned int vertZ = frontFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX, vertY, vertZ},
-                                              {x*0.2f,     1,     1}});
+
+            verticesCombined.push_back(Vertex{{vertX, vertY, vertZ}, {x*0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -248,11 +259,11 @@ void Voxelate::initScene() {
         // Back face
         if(z == 0 || blockBack == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
             unsigned int vertX = backFace[vertIndex++] + pos.x;
             unsigned int vertY = backFace[vertIndex++] + pos.y;
             unsigned int vertZ = backFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ},
-                                              {x * 0.2f, 1,     1}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -264,11 +275,11 @@ void Voxelate::initScene() {
         // Right face
         if(x == CHUNK_SIZE - 1 || blockRight == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
             unsigned int vertX = rightFace[vertIndex++] + pos.x;
             unsigned int vertY = rightFace[vertIndex++] + pos.y;
             unsigned int vertZ = rightFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ},
-                                              {x * 0.2f, 1,     1}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -280,11 +291,11 @@ void Voxelate::initScene() {
         // Left face
         if(x == 0 || blockLeft == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
             unsigned int vertX = leftFace[vertIndex++] + pos.x;
             unsigned int vertY = leftFace[vertIndex++] + pos.y;
             unsigned int vertZ = leftFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ},
-                                              {x * 0.2f, 1,     1}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -296,11 +307,11 @@ void Voxelate::initScene() {
         // Top face
         if(y == CHUNK_SIZE-1 || blockTop == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
             unsigned int vertX = topFace[vertIndex++] + pos.x;
             unsigned int vertY = topFace[vertIndex++] + pos.y;
             unsigned int vertZ = topFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ},
-                                              {x * 0.2f, 1,     1}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -312,11 +323,11 @@ void Voxelate::initScene() {
         // Bot face
         if(y == 0 || blockBot == 0) {
           for (int i = 0; i < 4; i++) {
+            glm::vec2 uv = uvs[i]; // <- Face UV's
             unsigned int vertX = botFace[vertIndex++] + pos.x;
             unsigned int vertY = botFace[vertIndex++] + pos.y;
             unsigned int vertZ = botFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ},
-                                              {x * 0.2f, 1,     1}});
+            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {x * 0.2f, 1, 1}, {uv.x, uv.y}});
           }
           for (uint16_t i: faceIndicesTemp) {
             indicesCombined.push_back(i + indicesCount);
@@ -385,7 +396,6 @@ void Voxelate::loop() {
     //ImGui::ShowDemoWindow();
 
     //ImGui::ShowMetricsWindow();
-
     ImGui::Render();
 
     // ACTUAL RENDERING
@@ -400,6 +410,11 @@ void Voxelate::clean() {
   //TODO: Destroy everything else """ATM""" THIS SHOULD BE OK BECAUSE WINDOWS CLEANS MEMORY AFTER AN EXE WAS CLOSED
   VulkanInstance &vki = E_Data::i()->vkInstWrapper;
   VkDevice &device = vki.device;
+
+  // Cleanup Depth Buffering Resources
+  vkDestroyImageView(device, E_Data::i()->vkInstWrapper.depthImage.vkImageView, nullptr);
+  vkDestroyImage(device, E_Data::i()->vkInstWrapper.depthImage.vkImage, nullptr);
+  vkFreeMemory(device, E_Data::i()->vkInstWrapper.depthImage.vkImageMemory, nullptr);
 
   VkSetup::cleanupOldSwapchain(device);
 

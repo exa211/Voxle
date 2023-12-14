@@ -25,10 +25,11 @@ namespace VkSetup {
   void cleanupOldSwapchain(VkDevice& device);
 
   void createImageViews();
+  void createSampler();
 
   VkDescriptorSetLayout createDescriptorSetLayout();
   void createDescriptorPool();
   void createDescriptorSets();
 
-  void populateDescriptors();
+  void populateDescriptors(VulkanImage::InternalImage& image);
 }

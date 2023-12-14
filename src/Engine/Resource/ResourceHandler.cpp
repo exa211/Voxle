@@ -7,9 +7,14 @@
 
 #include <stb_image.h>
 
-// createTextureImage
+/**
+ * Loads a Texture and creates VkImage, VkImageView also transitions the pipeline.
+ * @param t Image Reference
+ * @param path Path to texture in res folder
+ */
 void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
   LOG::ignored("Loading image " + path);
+  stbi_set_flip_vertically_on_load(true);
   stbi_uc *pixels = stbi_load(path.c_str(), &t.width, &t.height, &t.channels, STBI_rgb_alpha);
   if (!pixels) {
     LOG::warn("Could not load image " + path);
@@ -38,22 +43,22 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
   // VkImage is contained within Texture struct
   VulkanImage::createImage(t.width, t.height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, t.image, t.imageMemory);
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, t.image.vkImage, t.image.vkImageMemory);
 
   // Transition and copy pixel buffer to VkImage struct
   // LAYOUT_UNDEFINED because we atm do not care what happens to the image
-  VulkanImage::transitionImageLayout(t.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  Buffer::copyBufferToImage(stagingBuffer, t.image, t.width, t.height);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  Buffer::copyBufferToImage(stagingBuffer, t.image.vkImage, t.width, t.height);
   // Tells vulkan that the image will be read by shaders
-  VulkanImage::transitionImageLayout(t.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
   vkDestroyBuffer(E_Data::i()->vkInstWrapper.device, stagingBuffer, nullptr);
   vkFreeMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory, nullptr);
 
   // ----- IMAGE VIEW CREATION ----
 
-  LOG::info("Creating ImageView for texture: " + path);
-  t.view = VulkanImage::createImageView(t.image, VK_FORMAT_R8G8B8A8_SRGB);
+  LOG::ignored("Creating ImageView for texture: " + path);
+  VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_SRGB);
 
   LOG::ignored("Created Texture " + path);
 }

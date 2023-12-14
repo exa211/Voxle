@@ -7,7 +7,7 @@ int main() {
     try {
         voxEngine.run();
     } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
+        LOG(F, e.what());
     }
     return 0;
 }

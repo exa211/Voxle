@@ -22,7 +22,7 @@ void PrimitiveRenderer::render(Camera& cam) {
   if(ifErr == VK_ERROR_OUT_OF_DATE_KHR) {
     VkSetup::recreateSwapchain(device);
     return;
-  } else if(ifErr != VK_SUCCESS && ifErr != VK_SUBOPTIMAL_KHR) LOG::fatal("Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
+  } else if(ifErr != VK_SUCCESS && ifErr != VK_SUBOPTIMAL_KHR) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
 
   vkResetFences(device, 1, &fence);
 
@@ -51,7 +51,7 @@ void PrimitiveRenderer::render(Camera& cam) {
   submitInfo.pSignalSemaphores = signalForSemaphores;
 
   if(vkQueueSubmit(E_Data::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
-    LOG::fatal("Could not submit command buffer, stopping renderer");
+    LOG(F, "Could not submit command buffer, stopping renderer");
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -70,7 +70,7 @@ void PrimitiveRenderer::render(Camera& cam) {
     E_Data::i()->vkInstWrapper.framebufferWasResized = false;
     VkSetup::recreateSwapchain(device);
     return;
-  } else if(ifErr != VK_SUCCESS) LOG::fatal("Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
+  } else if(ifErr != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 

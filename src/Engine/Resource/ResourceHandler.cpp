@@ -13,11 +13,11 @@
  * @param path Path to texture in res folder
  */
 void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
-  LOG::ignored("Loading image " + path);
+  LOG(D, "Loading image " + path);
   stbi_set_flip_vertically_on_load(true);
   stbi_uc *pixels = stbi_load(path.c_str(), &t.width, &t.height, &t.channels, STBI_rgb_alpha);
   if (!pixels) {
-    LOG::warn("Could not load image " + path);
+    LOG(W, "Could not load image " + path);
     return;
   }
 
@@ -57,8 +57,8 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
 
   // ----- IMAGE VIEW CREATION ----
 
-  LOG::ignored("Creating ImageView for texture: " + path);
+  LOG(D, "Creating ImageView for texture: " + path);
   VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_SRGB);
 
-  LOG::ignored("Created Texture " + path);
+  LOG(D, "Created Texture " + path);
 }

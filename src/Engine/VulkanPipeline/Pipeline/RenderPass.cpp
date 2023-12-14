@@ -70,6 +70,6 @@ void RenderPass::create() {
   renderPassInfo.pDependencies = &dependency;
 
   if(vkCreateRenderPass(E_Data::i()->vkInstWrapper.device, &renderPassInfo, nullptr, &E_Data::i()->vkInstWrapper.renderPass) != VK_SUCCESS)
-    LOG::fatal("Could not create VkRenderPass in GraphicsPipeline.cpp");
-  LOG::info("Created RenderPass");
+    LOG(F, "Could not create VkRenderPass in GraphicsPipeline.cpp");
+  LOG(I, "Created RenderPass");
 }

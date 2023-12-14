@@ -9,9 +9,10 @@ void Commandbuffer::create() {
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t) E_Data::i()->vkInstWrapper.commandBuffers.size();
 
-  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfo, E_Data::i()->vkInstWrapper.commandBuffers.data()) != VK_SUCCESS)
-    LOG::fatal("Could not create VKCommandBuffer");
-  LOG::info("Created VkCommandBuffer");
+  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfo, E_Data::i()->vkInstWrapper.commandBuffers.data()) != VK_SUCCESS) {
+    LOG(F, "Could not create VKCommandBuffer");
+  }
+  LOG(I, "Created VkCommandBuffer");
 
   // IMMEDIATE UPLOAD COMMAND BUFFER
 
@@ -21,9 +22,10 @@ void Commandbuffer::create() {
   allocInfoUpload.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfoUpload.commandBufferCount = 1;
 
-  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfoUpload, &E_Data::i()->vkInstWrapper.immediateCommandBuffer) != VK_SUCCESS)
-    LOG::fatal("Could not create VKCommandBuffer");
-  LOG::info("Created VkCommandBuffer for immediate uploads");
+  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfoUpload, &E_Data::i()->vkInstWrapper.immediateCommandBuffer) != VK_SUCCESS) {
+    LOG(F, "Could not create VKCommandBuffer");
+  }
+  LOG(I, "Created VkCommandBuffer for immediate uploads");
 }
 
 VkCommandBuffer Commandbuffer::recordSingleTime() {

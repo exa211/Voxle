@@ -17,11 +17,11 @@ namespace VulkanDebug {
   ) {
 
     if (type == VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
-      LOG::warn("Vulkan Un-optimized: " + std::string(pData->pMessage));
+      LOG(W, "Vulkan Un-optimized: " + std::string(pData->pMessage));
     }
 
     if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-      LOG::warn("Validation Layer: " + std::string(pData->pMessage));
+      LOG(W, "Validation Layer: " + std::string(pData->pMessage));
     }
 
     return VK_FALSE;

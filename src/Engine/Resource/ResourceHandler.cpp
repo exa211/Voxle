@@ -32,33 +32,36 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
 
   // Map our stagingBuffer with our pixel data
   void *data;
-  vkMapMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory, 0, imageSize, 0, &data);
+  vkMapMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory, 0, imageSize, 0, &data);
   memcpy(data, pixels, static_cast<size_t>(imageSize));
-  vkUnmapMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory);
+  vkUnmapMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory);
 
   // free emory
   stbi_image_free(pixels);
 
   // Create our image
   // VkImage is contained within Texture struct
-  VulkanImage::createImage(t.width, t.height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+
+  // VK_FORMAT_R8G8B8A8_SRGB applies a gamma correction, we don't want this I think, because it makes textures look darker
+  // than they are
+  VulkanImage::createImage(t.width, t.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, t.image.vkImage, t.image.vkImageMemory);
 
   // Transition and copy pixel buffer to VkImage struct
   // LAYOUT_UNDEFINED because we atm do not care what happens to the image
-  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   Buffer::copyBufferToImage(stagingBuffer, t.image.vkImage, t.width, t.height);
   // Tells vulkan that the image will be read by shaders
-  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  vkDestroyBuffer(E_Data::i()->vkInstWrapper.device, stagingBuffer, nullptr);
-  vkFreeMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory, nullptr);
+  vkDestroyBuffer(EngineData::i()->vkInstWrapper.device, stagingBuffer, nullptr);
+  vkFreeMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory, nullptr);
 
   // ----- IMAGE VIEW CREATION ----
 
   LOG(D, "Creating ImageView for texture: " + path);
-  VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_SRGB);
+  VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_UNORM);
 
   LOG(D, "Created Texture " + path);
 }

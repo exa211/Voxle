@@ -17,7 +17,7 @@ struct IndexBuffer {
   VkBuffer indexBuffer;
   VkDeviceMemory indexBufferMemory;
   VkDeviceSize size;
-      uint32_t indicesSize;
+  uint32_t indicesSize;
 };
 
 struct UniformBufferObject {
@@ -30,6 +30,7 @@ struct UniformBufferObject {
 namespace Buffer {
 
   VertexBuffer createVertexBuffer(const std::vector<Vertex>& vertices);
+  VertexBuffer createBlockVertexBuffer(const std::vector<BlockVertex>& blockVertices);
   IndexBuffer createIndexBuffer(const std::vector<uint32_t>& indices);
   void createUniformBuffers();
   void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propFlags, VkBuffer& buffer, VkDeviceMemory& memory);

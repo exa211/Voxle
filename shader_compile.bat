@@ -1,3 +1,2 @@
-C:/VulkanSDK/1.3.239.0/Bin/glslc.exe res/shader/shader.vert -o res/shader/compiled/vert.spv
-C:/VulkanSDK/1.3.239.0/Bin/glslc.exe res/shader/shader.frag -o res/shader/compiled/frag.spv
-pause
+C:/VulkanSDK/1.3.239.0/Bin/glslangValidator.exe --target-env vulkan1.2 -e main -o res/shader/compiled/vert.spv res/shader/shader.vert
+C:/VulkanSDK/1.3.239.0/Bin/glslangValidator.exe --target-env vulkan1.2 -e main -o res/shader/compiled/frag.spv res/shader/shader.frag

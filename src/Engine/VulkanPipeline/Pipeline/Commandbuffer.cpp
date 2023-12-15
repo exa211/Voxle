@@ -1,15 +1,15 @@
 #include "Commandbuffer.h"
 
 void Commandbuffer::create() {
-  E_Data::i()->vkInstWrapper.commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+  EngineData::i()->vkInstWrapper.commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool = E_Data::i()->vkInstWrapper.commandPool;
+  allocInfo.commandPool = EngineData::i()->vkInstWrapper.commandPool;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t) E_Data::i()->vkInstWrapper.commandBuffers.size();
+  allocInfo.commandBufferCount = (uint32_t) EngineData::i()->vkInstWrapper.commandBuffers.size();
 
-  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfo, E_Data::i()->vkInstWrapper.commandBuffers.data()) != VK_SUCCESS) {
+  if(vkAllocateCommandBuffers(EngineData::i()->vkInstWrapper.device, &allocInfo, EngineData::i()->vkInstWrapper.commandBuffers.data()) != VK_SUCCESS) {
     LOG(F, "Could not create VKCommandBuffer");
   }
   LOG(I, "Created VkCommandBuffer");
@@ -18,11 +18,11 @@ void Commandbuffer::create() {
 
   VkCommandBufferAllocateInfo allocInfoUpload{};
   allocInfoUpload.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfoUpload.commandPool = E_Data::i()->vkInstWrapper.immediateUploadPool;
+  allocInfoUpload.commandPool = EngineData::i()->vkInstWrapper.immediateUploadPool;
   allocInfoUpload.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfoUpload.commandBufferCount = 1;
 
-  if(vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfoUpload, &E_Data::i()->vkInstWrapper.immediateCommandBuffer) != VK_SUCCESS) {
+  if(vkAllocateCommandBuffers(EngineData::i()->vkInstWrapper.device, &allocInfoUpload, &EngineData::i()->vkInstWrapper.immediateCommandBuffer) != VK_SUCCESS) {
     LOG(F, "Could not create VKCommandBuffer");
   }
   LOG(I, "Created VkCommandBuffer for immediate uploads");
@@ -32,11 +32,11 @@ VkCommandBuffer Commandbuffer::recordSingleTime() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = E_Data::i()->vkInstWrapper.commandPool;
+  allocInfo.commandPool = EngineData::i()->vkInstWrapper.commandPool;
   allocInfo.commandBufferCount = 1;
 
   VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(E_Data::i()->vkInstWrapper.device, &allocInfo, &commandBuffer);
+  vkAllocateCommandBuffers(EngineData::i()->vkInstWrapper.device, &allocInfo, &commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -54,7 +54,7 @@ void Commandbuffer::endRecordSingleTime(VkCommandBuffer cmdBuffer) {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &cmdBuffer;
 
-  vkQueueSubmit(E_Data::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(E_Data::i()->vkInstWrapper.graphicsQueue);
-  vkFreeCommandBuffers(E_Data::i()->vkInstWrapper.device, E_Data::i()->vkInstWrapper.commandPool, 1, &cmdBuffer);
+  vkQueueSubmit(EngineData::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(EngineData::i()->vkInstWrapper.graphicsQueue);
+  vkFreeCommandBuffers(EngineData::i()->vkInstWrapper.device, EngineData::i()->vkInstWrapper.commandPool, 1, &cmdBuffer);
 }

@@ -86,8 +86,8 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/Image/Image.cpp
         src/Engine/VulkanPipeline/Pipeline/Image/Image.h
         src/Engine/World/Block.hpp
-        src/Engine/World/chunk.cpp
-        src/Engine/World/chunk.hpp
+        src/Engine/World/Chunk.cpp
+        src/Engine/World/Chunk.hpp
         src/Engine/VulkanPipeline/VulkanDebug.h
         src/Engine/VulkanPipeline/VulkanDebug.cpp)
 

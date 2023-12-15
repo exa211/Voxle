@@ -38,6 +38,11 @@ void Camera::update(GLFWwindow* window, float& deltaTime) {
     position += glm::normalize(up) * flySpeed * deltaTime;
   if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     position -= glm::normalize(up) * flySpeed * deltaTime;
+  if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    flySpeed = 50.0f;
+  } else{
+    flySpeed = 15.0f;
+  }
 
   if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     ImGui::SetMouseCursor(ImGuiMouseCursor_None);
@@ -69,5 +74,5 @@ void Camera::update(GLFWwindow* window, float& deltaTime) {
 
   cameraMatrix.view = glm::lookAt(position, position + direction, up);
   cameraMatrix.proj = glm::perspective(glm::radians(fov), (float)width/(float)height, nearPlane, farPlane);
-  cameraMatrix.proj[1][1] *= -1; // Invert the coordinate system
+  //cameraMatrix.proj[1][1] *= -1; // Invert the coordinate system
 }

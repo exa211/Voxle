@@ -25,21 +25,21 @@ void VulkanImage::createImage(uint32_t width, uint32_t height, VkFormat format, 
   imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateImage(E_Data::i()->vkInstWrapper.device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+  if (vkCreateImage(EngineData::i()->vkInstWrapper.device, &imageInfo, nullptr, &image) != VK_SUCCESS)
   LOG(F, "Failed to create VkImage");
 
   VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements(E_Data::i()->vkInstWrapper.device, image, &memRequirements);
+  vkGetImageMemoryRequirements(EngineData::i()->vkInstWrapper.device, image, &memRequirements);
 
   VkMemoryAllocateInfo allocateInfo{};
   allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocateInfo.allocationSize = memRequirements.size; // <- Size of image texture
   allocateInfo.memoryTypeIndex = SuitabilityChecker::findMemoryType(memRequirements.memoryTypeBits, properties);
 
-  if (vkAllocateMemory(E_Data::i()->vkInstWrapper.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
+  if (vkAllocateMemory(EngineData::i()->vkInstWrapper.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
     LOG(F, "Could not allocate Image Memory");
 
-  vkBindImageMemory(E_Data::i()->vkInstWrapper.device, image, imageMemory, 0);
+  vkBindImageMemory(EngineData::i()->vkInstWrapper.device, image, imageMemory, 0);
 }
 
 void VulkanImage::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
@@ -124,7 +124,7 @@ void VulkanImage::createImageView(VkImage image, VkImageView& imageView, VkForma
   viewCreateInfo.subresourceRange.baseArrayLayer = 0;
   viewCreateInfo.subresourceRange.layerCount = 1;
 
-  if (vkCreateImageView(E_Data::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &imageView) != VK_SUCCESS)
+  if (vkCreateImageView(EngineData::i()->vkInstWrapper.device, &viewCreateInfo, nullptr, &imageView) != VK_SUCCESS)
     LOG(F, "Failed to create Image Views");
 }
 
@@ -144,7 +144,7 @@ void VulkanImage::Sampler::createTextureSampler(VkSampler& sampler, VkFilter fil
   samplerInfo.addressModeW = repeatMode;
 
   VkPhysicalDeviceProperties devicePropsAnis{};
-  vkGetPhysicalDeviceProperties(E_Data::i()->vkInstWrapper.physicalDevice, &devicePropsAnis);
+  vkGetPhysicalDeviceProperties(EngineData::i()->vkInstWrapper.physicalDevice, &devicePropsAnis);
 
   samplerInfo.anisotropyEnable = VK_TRUE; // <- I personally think this should always be ton
   // I think we should later implement settings for this because this can get performance heavy on older cards!
@@ -165,6 +165,6 @@ void VulkanImage::Sampler::createTextureSampler(VkSampler& sampler, VkFilter fil
   samplerInfo.minLod = 0.0f;
   samplerInfo.maxLod = 0.0f;
 
-  if(vkCreateSampler(E_Data::i()->vkInstWrapper.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+  if(vkCreateSampler(EngineData::i()->vkInstWrapper.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
     LOG(F, "Sampler could not be created (Image.cpp)");
 }

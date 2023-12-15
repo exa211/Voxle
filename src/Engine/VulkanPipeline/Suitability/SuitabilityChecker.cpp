@@ -15,7 +15,14 @@ SuitabilityChecker::checkDeviceExtensionSupport(VkPhysicalDevice device, const s
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
+ LOG(I, "Available Device Extensions: ");
+  for(VkExtensionProperties props : availableExtensions) {
+    std::cout << '\t' << props.extensionName << '\n';
+  }
+
   std::set<std::string> requiredExtensions(extensions.begin(), extensions.end());
+
+  requiredExtensions.emplace("VK_KHR_shader_non_semantic_info");
 
   for (const auto &extension: availableExtensions) {
     requiredExtensions.erase(extension.extensionName);
@@ -33,7 +40,7 @@ bool SuitabilityChecker::isDeviceSuitable(VkPhysicalDevice device) {
  **/
 uint32_t SuitabilityChecker::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags props) {
   VkPhysicalDeviceMemoryProperties memoryProperties;
-  vkGetPhysicalDeviceMemoryProperties(E_Data::i()->vkInstWrapper.physicalDevice, &memoryProperties);
+  vkGetPhysicalDeviceMemoryProperties(EngineData::i()->vkInstWrapper.physicalDevice, &memoryProperties);
 
   for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
     if (typeFilter & (1 << i) && (memoryProperties.memoryTypes[i].propertyFlags & props) == props) {
@@ -49,7 +56,7 @@ VkFormat SuitabilityChecker::findSupportedDepthFormat(const std::vector<VkFormat
                                                       VkImageTiling tiling, VkFormatFeatureFlags features) {
   for (VkFormat format: candidates) {
     VkFormatProperties prop;
-    vkGetPhysicalDeviceFormatProperties(E_Data::i()->vkInstWrapper.physicalDevice, format, &prop);
+    vkGetPhysicalDeviceFormatProperties(EngineData::i()->vkInstWrapper.physicalDevice, format, &prop);
 
     if (tiling == VK_IMAGE_TILING_LINEAR && (prop.linearTilingFeatures & features) == features) {
       return format;

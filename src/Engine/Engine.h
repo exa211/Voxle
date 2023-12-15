@@ -13,8 +13,9 @@
 #include <imgui.h>
 
 #include <string>
+#include <thread>
 
-class E_Data {
+class EngineData {
 public:
     const std::string ver = "1.0.0";
 
@@ -28,12 +29,15 @@ public:
 
     GLFWwindow *window;
 
-    static E_Data *i() {
-      static E_Data instance{};
+    std::thread logicThread;
+    std::thread renderThread;
+
+    static EngineData *i() {
+      static EngineData instance{};
       return &instance;
     }
 
-    E_Data(E_Data const &) = delete;
+    EngineData(EngineData const &) = delete;
 
-    void operator=(E_Data const &) = delete;
+    void operator=(EngineData const &) = delete;
 };

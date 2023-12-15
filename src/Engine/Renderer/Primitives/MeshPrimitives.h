@@ -42,3 +42,27 @@ struct Vertex {
     return attributeDesc;
   }
 };
+
+struct BlockVertex {
+  unsigned int packedVert;
+
+
+  static VkVertexInputBindingDescription getBindingDescription() {
+    VkVertexInputBindingDescription bindingDescription{};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(BlockVertex);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    return bindingDescription;
+  }
+
+  static VkVertexInputAttributeDescription getAttributeDescriptions() {
+    VkVertexInputAttributeDescription attrDesc{};
+
+    // Packed values Vertex Pos, Index, TexID (wip)
+    attrDesc.binding = 0;
+    attrDesc.location = 0;
+    attrDesc.format = VK_FORMAT_R32_UINT;
+    attrDesc.offset = offsetof(BlockVertex, packedVert);
+    return attrDesc;
+  }
+};

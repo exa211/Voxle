@@ -11,6 +11,7 @@ public:
   glm::vec3 direction{0.0, 0.0, -1.0};
   glm::vec3 up{0.0, 1.0, 0.0};
 
+  // TODO Update this on window resize
   int width;
   int height;
 

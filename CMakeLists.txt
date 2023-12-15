@@ -13,11 +13,13 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/glfw binary_dir EXCLUDE_FROM_ALL)
 add_subdirectory(lib/glm)
 add_subdirectory(lib/FastNoise2)
+add_subdirectory(lib/VulkanMemoryAllocator)
 
 ## Needed
 include_directories(lib/vulkan)
 include_directories(lib/stb)
 include_directories(lib/FastNoise2/include)
+include_directories(lib/VulkanMemoryAllocator/include)
 
 include_directories(src/Engine)
 
@@ -86,10 +88,10 @@ add_executable(Voxle
         src/Engine/VulkanPipeline/Pipeline/Image/Image.cpp
         src/Engine/VulkanPipeline/Pipeline/Image/Image.h
         src/Engine/World/Block.hpp
-        src/Engine/World/chunk.cpp
-        src/Engine/World/chunk.hpp
+        src/Engine/World/Chunk.cpp
+        src/Engine/World/Chunk.hpp
         src/Engine/VulkanPipeline/VulkanDebug.h
         src/Engine/VulkanPipeline/VulkanDebug.cpp)
 
-target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise)
+target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise GPUOpen::VulkanMemoryAllocator)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64)

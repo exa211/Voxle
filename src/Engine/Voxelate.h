@@ -23,8 +23,10 @@
 
 #include "Camera/Camera.h"
 
-const uint32_t W_WIDTH = 1280;
-const uint32_t W_HEIGHT = 720;
+const uint8_t W_SCALING = 2;
+
+const uint32_t W_WIDTH = 640 * W_SCALING;
+const uint32_t W_HEIGHT = 370 * W_SCALING;
 
 class Voxelate {
 public:

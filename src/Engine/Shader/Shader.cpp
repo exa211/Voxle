@@ -7,7 +7,7 @@ VkShaderModule Shader::Module::createShaderModule(const std::vector<char> &code)
   createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
   VkShaderModule shaderModule{};
-  if(vkCreateShaderModule(E_Data::i()->vkInstWrapper.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+  if(vkCreateShaderModule(EngineData::i()->vkInstWrapper.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     LOG(F, "Failed to create Shader Module");
 
   return shaderModule;

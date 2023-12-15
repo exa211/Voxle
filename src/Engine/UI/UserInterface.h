@@ -44,7 +44,7 @@ namespace UI {
     poolInfo.poolSizeCount = std::size(poolSizes);
 
     VkDescriptorPool uiDescriptorPool;
-    if (vkCreateDescriptorPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr, &uiDescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(EngineData::i()->vkInstWrapper.device, &poolInfo, nullptr, &uiDescriptorPool) != VK_SUCCESS)
       LOG(F, "Could not create Engine User Interface");
 
     ImGui::CreateContext();
@@ -62,19 +62,19 @@ namespace UI {
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     style.WindowBorderSize = 0;
 
-    ImGui_ImplGlfw_InitForVulkan(E_Data::i()->window, true);
+    ImGui_ImplGlfw_InitForVulkan(EngineData::i()->window, true);
 
     ImGui_ImplVulkan_InitInfo initInfo{};
-    initInfo.Instance = E_Data::i()->vkInstWrapper.vkInstance;
-    initInfo.PhysicalDevice = E_Data::i()->vkInstWrapper.physicalDevice;
-    initInfo.Device = E_Data::i()->vkInstWrapper.device;
-    initInfo.Queue = E_Data::i()->vkInstWrapper.graphicsQueue;
+    initInfo.Instance = EngineData::i()->vkInstWrapper.vkInstance;
+    initInfo.PhysicalDevice = EngineData::i()->vkInstWrapper.physicalDevice;
+    initInfo.Device = EngineData::i()->vkInstWrapper.device;
+    initInfo.Queue = EngineData::i()->vkInstWrapper.graphicsQueue;
     initInfo.DescriptorPool = uiDescriptorPool;
     initInfo.MinImageCount = 3;
     initInfo.ImageCount = 3;
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    ImGui_ImplVulkan_Init(&initInfo, E_Data::i()->vkInstWrapper.renderPass);
+    ImGui_ImplVulkan_Init(&initInfo, EngineData::i()->vkInstWrapper.renderPass);
 
     Pipeline::immediateSubmit([&](VkCommandBuffer cmd) {
       ImGui_ImplVulkan_CreateFontsTexture();
@@ -87,7 +87,7 @@ namespace UI {
   }
 
   void renderFrameProfiler() {
-    FrameProfiler &profiler = E_Data::i()->frameProfiler;
+    FrameProfiler &profiler = EngineData::i()->frameProfiler;
     ImGui::Begin("Rendering Metrics", nullptr,
                  ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground |
                  ImGuiWindowFlags_NoMove);
@@ -110,7 +110,7 @@ namespace UI {
       //drawList->AddQuadFilled(ImVec2(0, 0), ImVec2(W_WIDTH, 0), ImVec2(0, 30), ImVec2(W_WIDTH, 30), ImColor(20, 30, 235, 255));
       ImGui::SetCursorPos(ImVec2(W_WIDTH - 16 - 3, 3));
       if(ImGui::Button("X", ImVec2(16, 16))) {
-        glfwSetWindowShouldClose(E_Data::i()->window, true);
+        glfwSetWindowShouldClose(EngineData::i()->window, true);
       }
       if(ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -128,37 +128,56 @@ namespace UI {
     ImGui::SetCursorPos(ImVec2(W_WIDTH - 160, 0));
 
     if(ImGui::Button("X")) {
-      glfwSetWindowShouldClose(E_Data::i()->window, true);
+      glfwSetWindowShouldClose(EngineData::i()->window, true);
     }
     if(ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     if(ImGui::Button("_")) {
-      glfwIconifyWindow(E_Data::i()->window);
+      glfwIconifyWindow(EngineData::i()->window);
     }
     if(ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
     ImGui::EndMainMenuBar();
   }
 
-  void renderMainInterface() {
+  void renderMainInterface(Camera& cam) {
+
     // Init new frame for ImGui
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
 
+    // Debug Panel
     ImGui::NewFrame();
+      ImGui::Begin("##DebugPanel", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+      ImGui::Text("Camera Position: ");
+      ImGui::SameLine();
+
+      std::string camPosStr;
+      camPosStr.append("(");
+      camPosStr.append(std::to_string(cam.position.x) + ", ");
+      camPosStr.append(std::to_string(cam.position.y) + ", ");
+      camPosStr.append(std::to_string(cam.position.z) + ")");
+
+      ImGui::Text(camPosStr.c_str());
+
+      ImGui::End();
+    ImGui::EndFrame();
 
     // ---- Start draw commands ImGui ----
 
-    // Main Menu Bar
-    if(displayMainMenuBar) {
-      renderMainMenuBar();
-    }
-
-    // Frame Profiler
-    if (displayFrameProfiler) {
-      renderFrameProfiler();
-    }
+//    // Main Menu Bar
+//    if(displayMainMenuBar) {
+//      renderMainMenuBar();
+//    }
+//
+//    // Frame Profiler
+//    if (displayFrameProfiler) {
+//      renderFrameProfiler();
+//    }
 
     // ---- End draw commands ImGui ----
+
+    ImGui::Render();
 
   }
 }

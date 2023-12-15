@@ -8,7 +8,7 @@
 
 void RenderPass::create() {
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = E_Data::i()->vkInstWrapper.format;
+  colorAttachment.format = EngineData::i()->vkInstWrapper.format;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -69,7 +69,7 @@ void RenderPass::create() {
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
 
-  if(vkCreateRenderPass(E_Data::i()->vkInstWrapper.device, &renderPassInfo, nullptr, &E_Data::i()->vkInstWrapper.renderPass) != VK_SUCCESS)
+  if(vkCreateRenderPass(EngineData::i()->vkInstWrapper.device, &renderPassInfo, nullptr, &EngineData::i()->vkInstWrapper.renderPass) != VK_SUCCESS)
     LOG(F, "Could not create VkRenderPass in GraphicsPipeline.cpp");
   LOG(I, "Created RenderPass");
 }

@@ -32,7 +32,8 @@ std::vector<const char*> VulkanValidation::getRequireExtensions() {
   std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
   if(enableValidation) {
     extensions.push_back("VK_KHR_portability_enumeration");
-    //extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    //extensions.push_back("VK_KHR_shader_non_semantic_info");
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
   return extensions;
 }

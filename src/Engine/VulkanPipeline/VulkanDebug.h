@@ -24,6 +24,10 @@ namespace VulkanDebug {
       LOG(W, "Validation Layer: " + std::string(pData->pMessage));
     }
 
+    if(severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+      LOG(I, "Validation Layer Info: " + std::string(pData->pMessage));
+    }
+
     return VK_FALSE;
   }
 

@@ -3,15 +3,15 @@
 void PrimitiveRenderer::render(Camera& cam) {
   uint32_t currentFrame = 0;
 
-  VkDevice &device = E_Data::i()->vkInstWrapper.device;
-  VkSwapchainKHR &swapChain = E_Data::i()->vkInstWrapper.swapChain;
+  VkDevice &device = EngineData::i()->vkInstWrapper.device;
+  VkSwapchainKHR &swapChain = EngineData::i()->vkInstWrapper.swapChain;
 
-  VkFence& fence = E_Data::i()->vkInstWrapper.inFlightFences[currentFrame];
-  VkCommandBuffer& cBuffer = E_Data::i()->vkInstWrapper.commandBuffers[currentFrame];
+  VkFence& fence = EngineData::i()->vkInstWrapper.inFlightFences[currentFrame];
+  VkCommandBuffer& cBuffer = EngineData::i()->vkInstWrapper.commandBuffers[currentFrame];
 
   // "Vulkan Mutex" - Semaphores are like signals that can signal each other, they block each other for synchronization
-  VkSemaphore& imageSema = E_Data::i()->vkInstWrapper.imageAvailableSemas[currentFrame];
-  VkSemaphore& renderSema = E_Data::i()->vkInstWrapper.renderFinishedSemas[currentFrame];
+  VkSemaphore& imageSema = EngineData::i()->vkInstWrapper.imageAvailableSemas[currentFrame];
+  VkSemaphore& renderSema = EngineData::i()->vkInstWrapper.renderFinishedSemas[currentFrame];
 
   vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
 
@@ -50,7 +50,7 @@ void PrimitiveRenderer::render(Camera& cam) {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalForSemaphores;
 
-  if(vkQueueSubmit(E_Data::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
+  if(vkQueueSubmit(EngineData::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
     LOG(F, "Could not submit command buffer, stopping renderer");
 
   VkPresentInfoKHR presentInfo{};
@@ -65,9 +65,9 @@ void PrimitiveRenderer::render(Camera& cam) {
   presentInfo.pResults = nullptr;
 
   // Present the next image to the window
-  ifErr = vkQueuePresentKHR(E_Data::i()->vkInstWrapper.presentQueue, &presentInfo);
-  if(ifErr == VK_ERROR_OUT_OF_DATE_KHR || ifErr == VK_SUBOPTIMAL_KHR || E_Data::i()->vkInstWrapper.framebufferWasResized) {
-    E_Data::i()->vkInstWrapper.framebufferWasResized = false;
+  ifErr = vkQueuePresentKHR(EngineData::i()->vkInstWrapper.presentQueue, &presentInfo);
+  if(ifErr == VK_ERROR_OUT_OF_DATE_KHR || ifErr == VK_SUBOPTIMAL_KHR || EngineData::i()->vkInstWrapper.framebufferWasResized) {
+    EngineData::i()->vkInstWrapper.framebufferWasResized = false;
     VkSetup::recreateSwapchain(device);
     return;
   } else if(ifErr != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
@@ -77,7 +77,7 @@ void PrimitiveRenderer::render(Camera& cam) {
 }
 
 void PrimitiveRenderer::updateUniformBuffers(uint32_t currentFrame, Camera &cam) {
-  UniformBufferObject ubo{};
+  Buffers::UniformBufferObject ubo{};
   ubo.col = glm::vec3(1.0f, 1.0f, 1.0f);
-  memcpy(E_Data::i()->vkInstWrapper.uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+  memcpy(EngineData::i()->vkInstWrapper.uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 }

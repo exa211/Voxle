@@ -1,38 +1,38 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <Engine.h>
 #include <Logging/Logger.h>
 #include "VulkanPipeline/Suitability/SuitabilityChecker.h"
 #include "Renderer/Primitives/MeshPrimitives.h"
-#include <VulkanPipeline/Pipeline/Commandbuffer.h>
 
-struct VertexBuffer {
-  VkBuffer buffer;
-  VkDeviceMemory bufferMemory;
-  VkDeviceSize size;
-};
+#include <vk_mem_alloc.h>
 
-struct IndexBuffer {
-  VkBuffer indexBuffer;
-  VkDeviceMemory indexBufferMemory;
-  VkDeviceSize size;
-      uint32_t indicesSize;
-};
+namespace Buffers {
 
-struct UniformBufferObject {
-  alignas(16) glm::mat4 model{1};
-  alignas(16)glm::mat4 view;
-  alignas(16)glm::mat4 proj;
-  alignas(16) glm::vec3 col;
-};
+  struct VmaBuffer {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+  };
 
-namespace Buffer {
+  struct IndexBuffer {
+    VkBuffer indexBuffer;
+    VmaAllocation allocation;
+    uint32_t indicesSize;
+  };
 
-  VertexBuffer createVertexBuffer(const std::vector<Vertex>& vertices);
+  struct UniformBufferObject {
+    alignas(16) glm::mat4 model{1};
+    alignas(16)glm::mat4 view;
+    alignas(16)glm::mat4 proj;
+    alignas(16) glm::vec3 col;
+  };
+
+  VmaBuffer createVertexBuffer(const std::vector<Vertex>& vertices);
+  VmaBuffer createBlockVertexBuffer(const std::vector<BlockVertex>& blockVertices);
   IndexBuffer createIndexBuffer(const std::vector<uint32_t>& indices);
   void createUniformBuffers();
-  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propFlags, VkBuffer& buffer, VkDeviceMemory& memory);
+  void createBufferVMA(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propFlags, VkBuffer& buffer, VmaAllocation &allocation);
+  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propFlags, VkBuffer& buffer, VkDeviceMemory &deviceMemory);
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 }

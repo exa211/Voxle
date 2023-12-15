@@ -13,70 +13,14 @@
 
 #include <deque>
 
-const int CHUNK_SIZE{64};
-
-//This is kinda temporary
-unsigned int faceIndicesTemp[] = {
-  0, 1, 2,
-  2, 3, 0
-};
-// BACK FACE ------
-std::vector<uint8_t> backFace = {
-  1, 0, 0,
-  0, 0, 0,
-  0, 1, 0,
-  1, 1, 0,
-};
-// TOP FACE ------
-std::vector<uint8_t> topFace = {
-  0, 1, 1, // Top front left // 0
-  1, 1, 1, // 1
-  1, 1, 0, // 2
-  0, 1, 0, // 3
-};
-// BOTTOM FACE ------
-std::vector<uint8_t> botFace = {
-  0, 0, 0,
-  1, 0, 0,
-  1, 0, 1,
-  0, 0, 1,
-};
-// LEFT FACE ------
-std::vector<uint8_t> leftFace = {
-  0, 0, 0,
-  0, 0, 1,
-  0, 1, 1,
-  0, 1, 0,
-};
-// RIGHT FACE ------
-std::vector<uint8_t> rightFace = {
-  1, 0, 1,
-  1, 0, 0,
-  1, 1, 0,
-  1, 1, 1,
-};
-
-// FRONT FACE ------
-std::vector<uint8_t> frontFace = {
-  0, 0, 1,// 0 lower left
-  1, 0, 1, // 1 lower right
-  1, 1, 1, // 2 upper right
-  0, 1, 1, // 3 upper left
-};
-
-std::vector<glm::vec2> uvs = {
-  {0, 0},
-  {1, 0},
-  {1, 1},
-  {0, 1}
-};
+#include <World/Chunk.hpp>
 
 static void callback_glfwWindowResized(GLFWwindow *window, int w, int h) {
-  E_Data::i()->vkInstWrapper.framebufferWasResized = true;
+  EngineData::i()->vkInstWrapper.framebufferWasResized = true;
 }
 
 static void callback_glfwMousePosition(GLFWwindow *window, double x, double y) {
-  E_Data::i()->cursorPos = glm::vec2(x / W_WIDTH, y / W_HEIGHT);
+  EngineData::i()->cursorPos = glm::vec2(x / W_WIDTH, y / W_HEIGHT);
 }
 
 static void callback_glfwKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -105,26 +49,26 @@ void Voxelate::initEngine() {
 void Voxelate::initWindow() {
   glfwInit();
 
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // We want no opengl api because we are using Vulkan
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
   glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // WINDOW DECORATION
 
-  E_Data::i()->window = glfwCreateWindow(W_WIDTH, W_HEIGHT, E_Data::i()->ver.c_str(), nullptr, nullptr);
-  glfwSetWindowUserPointer(E_Data::i()->window, this);
+  EngineData::i()->window = glfwCreateWindow(W_WIDTH, W_HEIGHT, EngineData::i()->ver.c_str(), nullptr, nullptr);
+  glfwSetWindowUserPointer(EngineData::i()->window, this);
 
   // Register GLFW Callbacks
-  glfwSetFramebufferSizeCallback(E_Data::i()->window, callback_glfwWindowResized);
-  glfwSetCursorPosCallback(E_Data::i()->window, callback_glfwMousePosition);
-  glfwSetKeyCallback(E_Data::i()->window, callback_glfwKey);
+  glfwSetFramebufferSizeCallback(EngineData::i()->window, callback_glfwWindowResized);
+  glfwSetCursorPosCallback(EngineData::i()->window, callback_glfwMousePosition);
+  glfwSetKeyCallback(EngineData::i()->window, callback_glfwKey);
 
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
   const GLFWvidmode *vidMode = glfwGetVideoMode(primaryMonitor);
   int cX = (vidMode->width / 2) - static_cast<int>(W_WIDTH / 2);
   int cY = (vidMode->height / 2) - static_cast<int>(W_HEIGHT / 2);
 
-  glfwSetWindowPos(E_Data::i()->window, cX, cY);
+  glfwSetWindowPos(EngineData::i()->window, cX, cY);
 
-  glfwGetFramebufferSize(E_Data::i()->window, &E_Data::i()->w_frameBuffer, &E_Data::i()->h_frameBuffer);
+  glfwGetFramebufferSize(EngineData::i()->window, &EngineData::i()->w_frameBuffer, &EngineData::i()->h_frameBuffer);
 }
 
 void Voxelate::initVulkan() {
@@ -134,8 +78,12 @@ void Voxelate::initVulkan() {
 
   VkSetup::createSurface();
 
+  // Devices
   VkSetup::selectPhysicalDevice();
   VkSetup::createLogicalDevice();
+
+  // Vma Allocator creation
+  VkSetup::createVmaAllocator();
 
   Pipeline::createCommandPool();
 
@@ -146,7 +94,7 @@ void Voxelate::initVulkan() {
 
   // TODO: Cache textures in map or something else so we can delete these after and free memory
   VulkanImage::Image leaveTexture{};
-  Resources::createTexture(leaveTexture, "../res/texture/dirt.png");
+  Resources::createTexture(leaveTexture, "../res/texture/andesite.png");
 
   // Descriptors
   VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();
@@ -167,186 +115,47 @@ void Voxelate::initVulkan() {
   Pipeline::createSyncObjects();
 }
 
-int getBlock(std::deque<int>& blocks, int x, int y, int z) {
-  int index = x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE * CHUNK_SIZE);
-  if(index < 0 || index > blocks.size()) return 0;
-  return blocks[index];
-}
-
-int from1D(int x, int y, int z) {
-  int index = x + CHUNK_SIZE * (y + CHUNK_SIZE * z);
-  if(index < 0) return 0;
-  return index;
-}
-
 // Initializes the scene
 void Voxelate::initScene() {
   Scene mainScene{};
 
   LOG(I, "FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
 
-  auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
-  auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
-
-  fnFractal->SetSource(fnSimplex);
-  fnFractal->SetOctaveCount(5);
+  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("GQATAMP1KD8NAAQAAAAAACBACQAAZmYmPwAAAAA/AQQAAAAAAPYojEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
 
   std::vector<float> noise(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-  fnFractal->GenUniformGrid3D(noise.data(), 0, 0, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.2f, 1337);
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
 
-  std::vector<Vertex> verticesCombined;
-  std::vector<uint32_t> indicesCombined;
+  Chunk chunk{};
+  chunk.generate(noise);
+  chunk.regenerateMesh();
 
-  std::deque<int> blocks;
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, -CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
 
-  for (int x = 0; x < CHUNK_SIZE; ++x) {
-    for (int y = 0; y < CHUNK_SIZE; ++y) {
-      for (int z = 0; z < CHUNK_SIZE; ++z) {
-        int index = from1D(x, y, z);
-        float val = noise[index];
+  Chunk chunk2{};
+  chunk2.generate(noise);
+  chunk2.regenerateMesh();
 
-        if(val <= 0.12f) {
-          blocks.push_back(0);
-          continue;
-        }
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, CHUNK_SIZE, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
 
-        blocks.push_back(1);
-      }
-    }
-  }
+  Chunk chunk3{};
+  chunk3.generate(noise);
+  chunk3.regenerateMesh();
 
-
-  int vertIndex{0};
-  int indicesCount{0};
-
-  // Some performance measure 128x128x128 chunk uses 10mb RAM and rougly 2Gig VRAM
-  // We can reduce the VRAM drastically with packing the verts into a single integer.
-  // And then unpacking them in the shader, unpacking is really fast because GPU handles it better.
-
-  for (int x = 0; x < CHUNK_SIZE; ++x) {
-    for (int y = 0; y < CHUNK_SIZE; ++y) {
-      for (int z = 0; z < CHUNK_SIZE; ++z) {
-        int block = getBlock(blocks, x, y, z);
-        if(block == 0) continue;
-
-        int blockFront = getBlock(blocks, x, y, z + 1);
-        int blockBack = getBlock(blocks, x, y, z - 1);
-        int blockRight = getBlock(blocks, x + 1, y, z);
-        int blockLeft = getBlock(blocks, x - 1, y, z);
-        int blockTop = getBlock(blocks, x, y + 1, z);
-        int blockBot = getBlock(blocks, x, y - 1, z);
-
-        glm::vec<3, int> pos{x, y, z};
-
-        // Front face
-        if(z == CHUNK_SIZE-1 || blockFront == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-
-            unsigned int vertX = frontFace[vertIndex++] + pos.x;
-            unsigned int vertY = frontFace[vertIndex++] + pos.y;
-            unsigned int vertZ = frontFace[vertIndex++] + pos.z;
-
-            verticesCombined.push_back(Vertex{{vertX, vertY, vertZ}, {static_cast<float>(x)*0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-        // Back face
-        if(z == 0 || blockBack == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-            unsigned int vertX = backFace[vertIndex++] + pos.x;
-            unsigned int vertY = backFace[vertIndex++] + pos.y;
-            unsigned int vertZ = backFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-        // Right face
-        if(x == CHUNK_SIZE - 1 || blockRight == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-            unsigned int vertX = rightFace[vertIndex++] + pos.x;
-            unsigned int vertY = rightFace[vertIndex++] + pos.y;
-            unsigned int vertZ = rightFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-        // Left face
-        if(x == 0 || blockLeft == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-            unsigned int vertX = leftFace[vertIndex++] + pos.x;
-            unsigned int vertY = leftFace[vertIndex++] + pos.y;
-            unsigned int vertZ = leftFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-        // Top face
-        if(y == CHUNK_SIZE-1 || blockTop == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-            unsigned int vertX = topFace[vertIndex++] + pos.x;
-            unsigned int vertY = topFace[vertIndex++] + pos.y;
-            unsigned int vertZ = topFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-        // Bot face
-        if(y == 0 || blockBot == 0) {
-          for (int i = 0; i < 4; i++) {
-            glm::vec2 uv = uvs[i]; // <- Face UV's
-            unsigned int vertX = botFace[vertIndex++] + pos.x;
-            unsigned int vertY = botFace[vertIndex++] + pos.y;
-            unsigned int vertZ = botFace[vertIndex++] + pos.z;
-            verticesCombined.push_back(Vertex{{vertX,    vertY, vertZ}, {static_cast<float>(x) * 0.2f, 1, 1}, {uv.x, uv.y}});
-          }
-          for (uint16_t i: faceIndicesTemp) {
-            indicesCombined.push_back(i + indicesCount);
-          }
-          indicesCount += 4;
-          vertIndex = 0;
-        }
-
-      }
-    }
-  }
-
-  std::cout << "Chunk Vert Count: " << verticesCombined.size() << std::endl;
-  std::cout << "Chunk Index Count: " << indicesCombined.size() << std::endl;
+  LOG(D, "Creating meshes");
 
   Mesh combinedMesh{};
-  combinedMesh.vertexBuffer = Buffer::createVertexBuffer(verticesCombined);
-  combinedMesh.indexBuffer = Buffer::createIndexBuffer(indicesCombined);
+  combinedMesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunk.getChunkMesh().vertices);
+  combinedMesh.indexBuffer = Buffers::createIndexBuffer(chunk.getChunkMesh().indices);
+
+  Mesh combinedMesh2{};
+  combinedMesh2.vertexBuffer = Buffers::createBlockVertexBuffer(chunk2.getChunkMesh().vertices);
+  combinedMesh2.indexBuffer = Buffers::createIndexBuffer(chunk2.getChunkMesh().indices);
+  combinedMesh2.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {-CHUNK_SIZE, 0, 0});
+
   mainScene.meshesInScene.push_back(combinedMesh);
+  mainScene.meshesInScene.push_back(combinedMesh2);
+  //mainScene.meshesInScene.push_back(combinedMesh3);
 
   LOG(I, "Pushing mesh into scene");
 
@@ -360,7 +169,7 @@ void Voxelate::initGui() {
 }
 
 void Voxelate::update(float deltaTime) {
-  cam.update(E_Data::i()->window, deltaTime);
+  cam.update(EngineData::i()->window, deltaTime);
 }
 
 void Voxelate::loop() {
@@ -372,11 +181,11 @@ void Voxelate::loop() {
    *  LOOP
    */
 
-  while (!glfwWindowShouldClose(E_Data::i()->window)) {
+  while (!glfwWindowShouldClose(EngineData::i()->window)) {
     const double newTimeStamp = glfwGetTime();
     deltaSeconds = (float) (newTimeStamp - timeStamp);
     timeStamp = newTimeStamp;
-    E_Data::i()->frameProfiler.tick(deltaSeconds);
+    EngineData::i()->frameProfiler.tick(deltaSeconds);
 
     //float ms = 1000/time;
 
@@ -391,36 +200,36 @@ void Voxelate::loop() {
     //ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     // Main Entry for rendering the Engine User Interface
-    UI::renderMainInterface();
+    UI::renderMainInterface(cam);
 
     //ImGui::ShowDemoWindow();
 
     //ImGui::ShowMetricsWindow();
-    ImGui::Render();
 
     // ACTUAL RENDERING
     PrimitiveRenderer::render(cam);
   }
 
-  vkDeviceWaitIdle(E_Data::i()->vkInstWrapper.device);
+  vkDeviceWaitIdle(EngineData::i()->vkInstWrapper.device);
 
 }
 
 void Voxelate::clean() {
   //TODO: Destroy everything else """ATM""" THIS SHOULD BE OK BECAUSE WINDOWS CLEANS MEMORY AFTER AN EXE WAS CLOSED
-  VulkanInstance &vki = E_Data::i()->vkInstWrapper;
+  VulkanInstance &vki = EngineData::i()->vkInstWrapper;
   VkDevice &device = vki.device;
 
+  VmaAllocator &allocator = vki.vmaAllocator;
+
   // Cleanup Depth Buffering Resources
-  vkDestroyImageView(device, E_Data::i()->vkInstWrapper.depthImage.vkImageView, nullptr);
-  vkDestroyImage(device, E_Data::i()->vkInstWrapper.depthImage.vkImage, nullptr);
-  vkFreeMemory(device, E_Data::i()->vkInstWrapper.depthImage.vkImageMemory, nullptr);
+  vkDestroyImageView(device, EngineData::i()->vkInstWrapper.depthImage.vkImageView, nullptr);
+  vkDestroyImage(device, EngineData::i()->vkInstWrapper.depthImage.vkImage, nullptr);
+  vkFreeMemory(device, EngineData::i()->vkInstWrapper.depthImage.vkImageMemory, nullptr);
 
   VkSetup::cleanupOldSwapchain(device);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroyBuffer(device, vki.uniformBuffers[i], nullptr);
-    vkFreeMemory(device, vki.uniformBufferMemory[i], nullptr);
+    vmaDestroyBuffer(allocator, vki.uniformBuffers[i].buffer, nullptr);
   }
 
   vkDestroyDescriptorPool(device, vki.descriptorPool, nullptr);
@@ -434,8 +243,8 @@ void Voxelate::clean() {
       vkDestroyBuffer(device, m.vertexBuffer.buffer, nullptr);
       vkDestroyBuffer(device, m.indexBuffer.indexBuffer, nullptr);
 
-      vkFreeMemory(device, m.vertexBuffer.bufferMemory, nullptr);
-      vkFreeMemory(device, m.indexBuffer.indexBufferMemory, nullptr);
+      vmaFreeMemory(allocator, m.vertexBuffer.allocation);
+      vmaFreeMemory(allocator, m.indexBuffer.allocation);
     }
   }
 

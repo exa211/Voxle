@@ -2,6 +2,7 @@
 #include "Logging/Logger.h"
 #include "Image/Image.h"
 #include "Buffer/Buffer.h"
+#include "Engine.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -23,42 +24,45 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
 
   VkDeviceSize imageSize = t.width * t.height * 4;
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
+  VmaAllocator &allocator = EngineData::i()->vkInstWrapper.vmaAllocator;
 
-  Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-                       stagingBufferMemory);
+  Buffers::VmaBuffer stagingBuffer{};
+
+  Buffers::createBufferVMA(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer.buffer,
+                           stagingBuffer.allocation);
 
   // Map our stagingBuffer with our pixel data
   void *data;
-  vkMapMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory, 0, imageSize, 0, &data);
+  vmaMapMemory(allocator, stagingBuffer.allocation, &data);
   memcpy(data, pixels, static_cast<size_t>(imageSize));
-  vkUnmapMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory);
+  vmaUnmapMemory(allocator, stagingBuffer.allocation);
 
   // free emory
   stbi_image_free(pixels);
 
   // Create our image
   // VkImage is contained within Texture struct
-  VulkanImage::createImage(t.width, t.height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+
+  // VK_FORMAT_R8G8B8A8_SRGB applies a gamma correction, we don't want this I think, because it makes textures look darker
+  // than they are
+  VulkanImage::createImage(t.width, t.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, t.image.vkImage, t.image.vkImageMemory);
 
   // Transition and copy pixel buffer to VkImage struct
   // LAYOUT_UNDEFINED because we atm do not care what happens to the image
-  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  Buffer::copyBufferToImage(stagingBuffer, t.image.vkImage, t.width, t.height);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  Buffers::copyBufferToImage(stagingBuffer.buffer, t.image.vkImage, t.width, t.height);
   // Tells vulkan that the image will be read by shaders
-  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  vkDestroyBuffer(E_Data::i()->vkInstWrapper.device, stagingBuffer, nullptr);
-  vkFreeMemory(E_Data::i()->vkInstWrapper.device, stagingBufferMemory, nullptr);
+  vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
 
   // ----- IMAGE VIEW CREATION ----
 
   LOG(D, "Creating ImageView for texture: " + path);
-  VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_SRGB);
+  VulkanImage::createImageView(t.image.vkImage, t.image.vkImageView, VK_FORMAT_R8G8B8A8_UNORM);
 
   LOG(D, "Created Texture " + path);
 }

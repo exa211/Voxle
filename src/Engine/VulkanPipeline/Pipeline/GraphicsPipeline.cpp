@@ -28,7 +28,6 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
   std::vector<VkDynamicState> dynamicStates = {
-    VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR
   };
 
@@ -40,14 +39,16 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   VkPipelineVertexInputStateCreateInfo vertInputCreateInfo{};
   vertInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-  auto vertexBindingDescription = Vertex::getBindingDescription();
-  auto vertexAttrDescriptions = Vertex::getAttributeDescriptions();
+  auto vertexBindingDescription = BlockVertex::getBindingDescription();
+  auto vertexAttrDescriptions = BlockVertex::getAttributeDescriptions();
 
   vertInputCreateInfo.vertexBindingDescriptionCount = 1;
-  vertInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttrDescriptions.size());
+  //vertInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttrDescriptions.size());
+
+  vertInputCreateInfo.vertexAttributeDescriptionCount = 1;
 
   vertInputCreateInfo.pVertexBindingDescriptions = &vertexBindingDescription;
-  vertInputCreateInfo.pVertexAttributeDescriptions = vertexAttrDescriptions.data();
+  vertInputCreateInfo.pVertexAttributeDescriptions = &vertexAttrDescriptions;
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -56,15 +57,15 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
 
   VkViewport viewport{};
   viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = (float) E_Data::i()->vkInstWrapper.extent.width;
-  viewport.height = (float) E_Data::i()->vkInstWrapper.extent.height;
+  viewport.y = ((float) EngineData::i()->vkInstWrapper.extent.height);
+  viewport.width = (float) EngineData::i()->vkInstWrapper.extent.width;
+  viewport.height = -((float) EngineData::i()->vkInstWrapper.extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = E_Data::i()->vkInstWrapper.extent;
+  scissor.extent = EngineData::i()->vkInstWrapper.extent;
 
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -81,7 +82,7 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   rasterCreateInfo.rasterizerDiscardEnable = VK_FALSE;
   rasterCreateInfo.polygonMode = VK_POLYGON_MODE_FILL; // Change this for line, or point drawing
   rasterCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rasterCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
   rasterCreateInfo.depthBiasEnable = VK_FALSE;
   rasterCreateInfo.depthBiasConstantFactor = 0.0f;
   rasterCreateInfo.depthBiasClamp = 0.0f;
@@ -145,14 +146,14 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   pipelineLayoutInfo.pushConstantRangeCount = 1;
   pipelineLayoutInfo.pPushConstantRanges = &transformPushConstant;
 
-  if (vkCreatePipelineLayout(E_Data::i()->vkInstWrapper.device, &pipelineLayoutInfo, nullptr, &layout) !=
+  if (vkCreatePipelineLayout(EngineData::i()->vkInstWrapper.device, &pipelineLayoutInfo, nullptr, &layout) !=
       VK_SUCCESS)
     LOG(F, "Could not create VkPipelineLayout in GraphicsPipeline.cpp");
 
-  E_Data::i()->vkInstWrapper.pipelineLayout = layout;
+  EngineData::i()->vkInstWrapper.pipelineLayout = layout;
   LOG(I, "Created VkPipelineLayout");
 
-  if (E_Data::i()->vkInstWrapper.renderPass == nullptr) LOG(F, "VkRenderPass is null, exiting");
+  if (EngineData::i()->vkInstWrapper.renderPass == nullptr) LOG(F, "VkRenderPass is null, exiting");
 
   // Create Graphics Pipeline
   VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -169,7 +170,7 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
   pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
 
   pipelineInfo.layout = layout;
-  pipelineInfo.renderPass = E_Data::i()->vkInstWrapper.renderPass;
+  pipelineInfo.renderPass = EngineData::i()->vkInstWrapper.renderPass;
   pipelineInfo.subpass = 0;
 
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -177,23 +178,23 @@ void Pipeline::createGraphicsPipeline(VkDescriptorSetLayout &descriptor) {
 
   LOG(I, "Creating Pipeline...");
 
-  if (vkCreateGraphicsPipelines(E_Data::i()->vkInstWrapper.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-                                &E_Data::i()->vkInstWrapper.pipeline) != VK_SUCCESS)
+  if (vkCreateGraphicsPipelines(EngineData::i()->vkInstWrapper.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                &EngineData::i()->vkInstWrapper.pipeline) != VK_SUCCESS)
     LOG(F, "Could not create VkPipeline in GraphicsPipeline.cpp");
   LOG(I, "Created VkPipeline \n\tGraphics Pipeline Creation finished.");
 
-  vkDestroyShaderModule(E_Data::i()->vkInstWrapper.device, vertShaderModule, nullptr);
-  vkDestroyShaderModule(E_Data::i()->vkInstWrapper.device, fragShaderModule, nullptr);
+  vkDestroyShaderModule(EngineData::i()->vkInstWrapper.device, vertShaderModule, nullptr);
+  vkDestroyShaderModule(EngineData::i()->vkInstWrapper.device, fragShaderModule, nullptr);
   LOG(W, "Cleaning up shaders");
 }
 
 void Pipeline::createFramebuffers() {
-  std::vector<VkFramebuffer> buffers = E_Data::i()->vkInstWrapper.swapChainFramebuffers;
-  buffers.resize(E_Data::i()->vkInstWrapper.swapChainImageViews.size());
+  std::vector<VkFramebuffer> buffers = EngineData::i()->vkInstWrapper.swapChainFramebuffers;
+  buffers.resize(EngineData::i()->vkInstWrapper.swapChainImageViews.size());
 
-  std::vector<VkImageView> &imageViews = E_Data::i()->vkInstWrapper.swapChainImageViews;
+  std::vector<VkImageView> &imageViews = EngineData::i()->vkInstWrapper.swapChainImageViews;
 
-  VkImageView depthView = E_Data::i()->vkInstWrapper.depthImage.vkImageView;
+  VkImageView depthView = EngineData::i()->vkInstWrapper.depthImage.vkImageView;
 
   int frameBufferCount = 0;
   for (size_t i = 0; i < imageViews.size(); i++) {
@@ -201,20 +202,20 @@ void Pipeline::createFramebuffers() {
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = E_Data::i()->vkInstWrapper.renderPass;
+    framebufferInfo.renderPass = EngineData::i()->vkInstWrapper.renderPass;
     framebufferInfo.attachmentCount = static_cast<int>(attachments.size());
     framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = E_Data::i()->vkInstWrapper.extent.width;
-    framebufferInfo.height = E_Data::i()->vkInstWrapper.extent.height;
+    framebufferInfo.width = EngineData::i()->vkInstWrapper.extent.width;
+    framebufferInfo.height = EngineData::i()->vkInstWrapper.extent.height;
     framebufferInfo.layers = 1;
 
-    if (vkCreateFramebuffer(E_Data::i()->vkInstWrapper.device, &framebufferInfo, nullptr, &buffers[i]) !=
+    if (vkCreateFramebuffer(EngineData::i()->vkInstWrapper.device, &framebufferInfo, nullptr, &buffers[i]) !=
         VK_SUCCESS)
       LOG(F, "Error while creating Framebuffers");
     ++frameBufferCount;
   }
   LOG(I, "Created " + std::to_string(frameBufferCount) + " VkFrameBuffers");
-  E_Data::i()->vkInstWrapper.swapChainFramebuffers = buffers;
+  EngineData::i()->vkInstWrapper.swapChainFramebuffers = buffers;
 }
 
 /**
@@ -222,21 +223,21 @@ void Pipeline::createFramebuffers() {
  *  STAGE: After PhysicalDevice, Device and Surface
  **/
 void Pipeline::createCommandPool() {
-  QueueFamilyIndices queueFamilyIndices = QueueHelper::findQueueFamilies(E_Data::i()->vkInstWrapper.physicalDevice,
-                                                                         E_Data::i()->vkInstWrapper.surface);
+  QueueFamilyIndices queueFamilyIndices = QueueHelper::findQueueFamilies(EngineData::i()->vkInstWrapper.physicalDevice,
+                                                                         EngineData::i()->vkInstWrapper.surface);
   VkCommandPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-  if (vkCreateCommandPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
-                          &E_Data::i()->vkInstWrapper.commandPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(EngineData::i()->vkInstWrapper.device, &poolInfo, nullptr,
+                          &EngineData::i()->vkInstWrapper.commandPool) != VK_SUCCESS)
     LOG(F, "Could not create VkCommandPool");
   LOG(I, "Created VkCommandPool");
 
   // IMMEDIATE UPLOAD POOL
 
-  if (vkCreateCommandPool(E_Data::i()->vkInstWrapper.device, &poolInfo, nullptr,
-                          &E_Data::i()->vkInstWrapper.immediateUploadPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(EngineData::i()->vkInstWrapper.device, &poolInfo, nullptr,
+                          &EngineData::i()->vkInstWrapper.immediateUploadPool) != VK_SUCCESS)
     LOG(F, "Could not create VkCommandPool");
   LOG(I, "Created VkCommandPool for immediate uploads");
 }
@@ -247,31 +248,31 @@ void Pipeline::createCommandPool() {
 void Pipeline::createDepthBufferingObjects() {
   VkFormat depthFormat = SuitabilityChecker::getSupportedDepthFormat();
 
-  int imgWidth = static_cast<int>(E_Data::i()->vkInstWrapper.extent.width);
-  int imgHeight = static_cast<int>(E_Data::i()->vkInstWrapper.extent.height);
+  int imgWidth = static_cast<int>(EngineData::i()->vkInstWrapper.extent.width);
+  int imgHeight = static_cast<int>(EngineData::i()->vkInstWrapper.extent.height);
 
   // Create image
   VulkanImage::createImage(imgWidth, imgHeight, depthFormat,
                            VK_IMAGE_TILING_OPTIMAL,
                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                           E_Data::i()->vkInstWrapper.depthImage.vkImage,
-                           E_Data::i()->vkInstWrapper.depthImage.vkImageMemory);
+                           EngineData::i()->vkInstWrapper.depthImage.vkImage,
+                           EngineData::i()->vkInstWrapper.depthImage.vkImageMemory);
 
-  VulkanImage::createImageView(E_Data::i()->vkInstWrapper.depthImage.vkImage,
-                               E_Data::i()->vkInstWrapper.depthImage.vkImageView,
+  VulkanImage::createImageView(EngineData::i()->vkInstWrapper.depthImage.vkImage,
+                               EngineData::i()->vkInstWrapper.depthImage.vkImageView,
                                depthFormat,
                                VK_IMAGE_ASPECT_DEPTH_BIT);
 
   // Transition image
-  VulkanImage::transitionImageLayout(E_Data::i()->vkInstWrapper.depthImage.vkImage,
+  VulkanImage::transitionImageLayout(EngineData::i()->vkInstWrapper.depthImage.vkImage,
                                      depthFormat,
                                      VK_IMAGE_LAYOUT_UNDEFINED,
                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-  VulkanInstance &vki = E_Data::i()->vkInstWrapper;
+  VulkanInstance &vki = EngineData::i()->vkInstWrapper;
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -283,10 +284,10 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = E_Data::i()->vkInstWrapper.renderPass;
-  renderPassInfo.framebuffer = E_Data::i()->vkInstWrapper.swapChainFramebuffers[imageIndex];
+  renderPassInfo.renderPass = EngineData::i()->vkInstWrapper.renderPass;
+  renderPassInfo.framebuffer = EngineData::i()->vkInstWrapper.swapChainFramebuffers[imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = E_Data::i()->vkInstWrapper.extent;
+  renderPassInfo.renderArea.extent = EngineData::i()->vkInstWrapper.extent;
 
   std::array<VkClearValue, 2> clearValues{};
   clearValues[0].color = {{0.2f, 0.2f, 0.2f}};
@@ -297,15 +298,15 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
   VkViewport viewport{};
   viewport.x = 0;
   viewport.y = 0;
-  viewport.width = static_cast<float>(E_Data::i()->vkInstWrapper.extent.width);
-  viewport.height = static_cast<float>(E_Data::i()->vkInstWrapper.extent.height);
+  viewport.width = static_cast<float>(EngineData::i()->vkInstWrapper.extent.width);
+  viewport.height = static_cast<float>(EngineData::i()->vkInstWrapper.extent.height);
   viewport.minDepth = 0;
   viewport.maxDepth = 1;
   vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = E_Data::i()->vkInstWrapper.extent;
+  scissor.extent = EngineData::i()->vkInstWrapper.extent;
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
   // Begins the renderPass with the specified renderPassInfo
@@ -320,7 +321,7 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
 
   // Bind the Pipeline to the commandBuffer
   // Don't need to bind this for every single mesh
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, E_Data::i()->vkInstWrapper.pipeline);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, EngineData::i()->vkInstWrapper.pipeline);
 
   for (Mesh &m: SceneManager::i()->curScene.meshesInScene) {
 
@@ -332,7 +333,7 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
     constant.transformMatrix = proj * view * model;
     constant.data = color;
     // Push minimal transformation data to shader
-    vkCmdPushConstants(commandBuffer, E_Data::i()->vkInstWrapper.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+    vkCmdPushConstants(commandBuffer, EngineData::i()->vkInstWrapper.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(MeshPushConstant), &constant);
 
     // Bind the mesh if it's not the same
@@ -377,11 +378,11 @@ void Pipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuffer, u
 }
 
 void Pipeline::createSyncObjects() {
-  VkDevice &device = E_Data::i()->vkInstWrapper.device;
+  VkDevice &device = EngineData::i()->vkInstWrapper.device;
 
-  E_Data::i()->vkInstWrapper.imageAvailableSemas.resize(MAX_FRAMES_IN_FLIGHT);
-  E_Data::i()->vkInstWrapper.renderFinishedSemas.resize(MAX_FRAMES_IN_FLIGHT);
-  E_Data::i()->vkInstWrapper.inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  EngineData::i()->vkInstWrapper.imageAvailableSemas.resize(MAX_FRAMES_IN_FLIGHT);
+  EngineData::i()->vkInstWrapper.renderFinishedSemas.resize(MAX_FRAMES_IN_FLIGHT);
+  EngineData::i()->vkInstWrapper.inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
   VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -391,9 +392,9 @@ void Pipeline::createSyncObjects() {
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &E_Data::i()->vkInstWrapper.imageAvailableSemas[i])
-        || vkCreateSemaphore(device, &semaphoreInfo, nullptr, &E_Data::i()->vkInstWrapper.renderFinishedSemas[i])
-        || vkCreateFence(device, &fenceInfo, nullptr, &E_Data::i()->vkInstWrapper.inFlightFences[i])) {
+    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &EngineData::i()->vkInstWrapper.imageAvailableSemas[i])
+        || vkCreateSemaphore(device, &semaphoreInfo, nullptr, &EngineData::i()->vkInstWrapper.renderFinishedSemas[i])
+        || vkCreateFence(device, &fenceInfo, nullptr, &EngineData::i()->vkInstWrapper.inFlightFences[i])) {
       LOG(F, "Could not create synchronization objects (VkSemaphore and VkFence)");
     }
   }
@@ -404,17 +405,17 @@ void Pipeline::createSyncObjects() {
   VkFenceCreateInfo uploadFenceInfo{};
   uploadFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-  if (vkCreateFence(device, &uploadFenceInfo, nullptr, &E_Data::i()->vkInstWrapper.immediateUploadFence) != VK_SUCCESS) {
+  if (vkCreateFence(device, &uploadFenceInfo, nullptr, &EngineData::i()->vkInstWrapper.immediateUploadFence) != VK_SUCCESS) {
     LOG(F, "Could not create VkFence for immediate upload");
   }
   LOG(I, "Created VkFence for immediate upload");
 }
 
 void Pipeline::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) {
-  VkDevice &device = E_Data::i()->vkInstWrapper.device;
-  VkFence &fence = E_Data::i()->vkInstWrapper.immediateUploadFence;
+  VkDevice &device = EngineData::i()->vkInstWrapper.device;
+  VkFence &fence = EngineData::i()->vkInstWrapper.immediateUploadFence;
 
-  VkCommandBuffer &cmd = E_Data::i()->vkInstWrapper.immediateCommandBuffer;
+  VkCommandBuffer &cmd = EngineData::i()->vkInstWrapper.immediateCommandBuffer;
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -437,12 +438,12 @@ void Pipeline::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) 
   submitInfo.signalSemaphoreCount = 0;
   submitInfo.pSignalSemaphores = nullptr;
 
-  if (vkQueueSubmit(E_Data::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
+  if (vkQueueSubmit(EngineData::i()->vkInstWrapper.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
     LOG(F, "Could not Queue Submit one-time command");
 
   vkWaitForFences(device, 1, &fence, true, 9999);
   vkResetFences(device, 1, &fence);
 
-  vkResetCommandPool(device, E_Data::i()->vkInstWrapper.immediateUploadPool, 0);
+  vkResetCommandPool(device, EngineData::i()->vkInstWrapper.immediateUploadPool, 0);
 }
 

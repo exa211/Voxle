@@ -20,6 +20,8 @@ namespace VkSetup {
   void selectPhysicalDevice();
   void createLogicalDevice();
 
+  void createVmaAllocator();
+
   void createSwapchain(bool isResize = false);
   void recreateSwapchain(VkDevice& device);
   void cleanupOldSwapchain(VkDevice& device);

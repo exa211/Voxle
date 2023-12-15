@@ -8,42 +8,42 @@ unsigned int faceIndices[] = {
 };
 
 // FRONT FACE ------
-std::vector<GLbyte> frontFace = {
+std::vector<signed char> frontFace = {
   0, 0, 1,// 0 lower left
   1, 0, 1, // 1 lower right
   1, 1, 1, // 2 upper right
   0, 1, 1, // 3 upper left
 };
 // BACK FACE ------
-std::vector<GLbyte> backFace = {
+std::vector<signed char> backFace = {
   1, 0, 0,
   0, 0, 0,
   0, 1, 0,
   1, 1, 0,
 };
 // TOP FACE ------
-std::vector<GLbyte> topFace = {
+std::vector<signed char> topFace = {
   0, 1, 1, // Top front left // 0
   1, 1, 1, // 1
   1, 1, 0, // 2
   0, 1, 0, // 3
 };
 // BOTTOM FACE ------
-std::vector<GLbyte> botFace = {
+std::vector<signed char> botFace = {
   0, 0, 0,
   1, 0, 0,
   1, 0, 1,
   0, 0, 1,
 };
 // LEFT FACE ------
-std::vector<GLbyte> leftFace = {
+std::vector<signed char> leftFace = {
   0, 0, 0,
   0, 0, 1,
   0, 1, 1,
   0, 1, 0,
 };
 // RIGHT FACE ------
-std::vector<GLbyte> rightFace = {
+std::vector<signed char> rightFace = {
   1, 0, 1,
   1, 0, 0,
   1, 1, 0,
@@ -66,11 +66,10 @@ ChunkMesh& Chunk::getChunkMesh() {
 }
 
 void Chunk::generate(std::vector<float> &noise) {
-
-  int index = 0;
-  for (int x = 0; x < CHUNK_SIZE; ++x) {
+  int index{0};
+  for (int z = 0; z < CHUNK_SIZE; ++z) {
     for (int y = 0; y < CHUNK_SIZE; ++y) {
-      for (int z = 0; z < CHUNK_SIZE; ++z) {
+      for (int x = 0; x < CHUNK_SIZE; ++x) {
         float val = noise[index++];
 
         if (val >= 0.92f) {
@@ -102,7 +101,7 @@ void Chunk::regenerateMesh() {
         Material blockTop = getBlockUnsafe(x, y + 1, z);
         Material blockBot = getBlockUnsafe(x, y - 1, z);
 
-        glm::vec3 pos{x, y, z};
+        glm::ivec3 pos{x, y, z};
 
         // Front face
         if (z == CHUNK_SIZE - 1 || blockFront.Namespace == "voxle:air") {

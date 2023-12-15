@@ -6,7 +6,7 @@
 
 class Mesh {
 public:
-  VertexBuffer vertexBuffer;
-  IndexBuffer indexBuffer;
-  MeshPushConstant meshRenderData;
+  Buffers::VmaBuffer vertexBuffer{};
+  Buffers::IndexBuffer indexBuffer{};
+  MeshPushConstant meshRenderData{};
 };

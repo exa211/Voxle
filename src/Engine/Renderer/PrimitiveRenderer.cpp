@@ -77,7 +77,7 @@ void PrimitiveRenderer::render(Camera& cam) {
 }
 
 void PrimitiveRenderer::updateUniformBuffers(uint32_t currentFrame, Camera &cam) {
-  UniformBufferObject ubo{};
+  Buffers::UniformBufferObject ubo{};
   ubo.col = glm::vec3(1.0f, 1.0f, 1.0f);
   memcpy(EngineData::i()->vkInstWrapper.uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 }

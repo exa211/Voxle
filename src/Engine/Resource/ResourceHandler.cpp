@@ -2,6 +2,7 @@
 #include "Logging/Logger.h"
 #include "Image/Image.h"
 #include "Buffer/Buffer.h"
+#include "Engine.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -23,18 +24,19 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
 
   VkDeviceSize imageSize = t.width * t.height * 4;
 
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
+  VmaAllocator &allocator = EngineData::i()->vkInstWrapper.vmaAllocator;
 
-  Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
-                       stagingBufferMemory);
+  Buffers::VmaBuffer stagingBuffer{};
+
+  Buffers::createBufferVMA(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer.buffer,
+                           stagingBuffer.allocation);
 
   // Map our stagingBuffer with our pixel data
   void *data;
-  vkMapMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory, 0, imageSize, 0, &data);
+  vmaMapMemory(allocator, stagingBuffer.allocation, &data);
   memcpy(data, pixels, static_cast<size_t>(imageSize));
-  vkUnmapMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory);
+  vmaUnmapMemory(allocator, stagingBuffer.allocation);
 
   // free emory
   stbi_image_free(pixels);
@@ -51,12 +53,11 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
   // Transition and copy pixel buffer to VkImage struct
   // LAYOUT_UNDEFINED because we atm do not care what happens to the image
   VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  Buffer::copyBufferToImage(stagingBuffer, t.image.vkImage, t.width, t.height);
+  Buffers::copyBufferToImage(stagingBuffer.buffer, t.image.vkImage, t.width, t.height);
   // Tells vulkan that the image will be read by shaders
   VulkanImage::transitionImageLayout(t.image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  vkDestroyBuffer(EngineData::i()->vkInstWrapper.device, stagingBuffer, nullptr);
-  vkFreeMemory(EngineData::i()->vkInstWrapper.device, stagingBufferMemory, nullptr);
+  vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
 
   // ----- IMAGE VIEW CREATION ----
 

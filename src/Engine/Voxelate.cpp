@@ -78,8 +78,12 @@ void Voxelate::initVulkan() {
 
   VkSetup::createSurface();
 
+  // Devices
   VkSetup::selectPhysicalDevice();
   VkSetup::createLogicalDevice();
+
+  // Vma Allocator creation
+  VkSetup::createVmaAllocator();
 
   Pipeline::createCommandPool();
 
@@ -117,22 +121,41 @@ void Voxelate::initScene() {
 
   LOG(I, "FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
 
-  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("EQACAAAA16PwPxAAAAAAQBkAEwDD9Sg/DQAEAAAAAAAgQAkAAGZmJj8AAAAAPwEEAAAAAAD2KIxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM3MTD4AMzMzPwAAAAA/");
+  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("GQATAMP1KD8NAAQAAAAAACBACQAAZmYmPwAAAAA/AQQAAAAAAPYojEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
 
   std::vector<float> noise(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 0);
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
 
   Chunk chunk{};
   chunk.generate(noise);
   chunk.regenerateMesh();
 
-  std::cout << "Chunk Vert Count: " << chunk.getChunkMesh().vertices.size() << std::endl;
-  std::cout << "Chunk Index Count: " << chunk.getChunkMesh().indices.size() << std::endl;
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, -CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
+
+  Chunk chunk2{};
+  chunk2.generate(noise);
+  chunk2.regenerateMesh();
+
+  fnGenerator->GenUniformGrid3D(noise.data(), 0, CHUNK_SIZE, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
+
+  Chunk chunk3{};
+  chunk3.generate(noise);
+  chunk3.regenerateMesh();
+
+  LOG(D, "Creating meshes");
 
   Mesh combinedMesh{};
-  combinedMesh.vertexBuffer = Buffer::createBlockVertexBuffer(chunk.getChunkMesh().vertices);
-  combinedMesh.indexBuffer = Buffer::createIndexBuffer(chunk.getChunkMesh().indices);
+  combinedMesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunk.getChunkMesh().vertices);
+  combinedMesh.indexBuffer = Buffers::createIndexBuffer(chunk.getChunkMesh().indices);
+
+  Mesh combinedMesh2{};
+  combinedMesh2.vertexBuffer = Buffers::createBlockVertexBuffer(chunk2.getChunkMesh().vertices);
+  combinedMesh2.indexBuffer = Buffers::createIndexBuffer(chunk2.getChunkMesh().indices);
+  combinedMesh2.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {-CHUNK_SIZE, 0, 0});
+
   mainScene.meshesInScene.push_back(combinedMesh);
+  mainScene.meshesInScene.push_back(combinedMesh2);
+  //mainScene.meshesInScene.push_back(combinedMesh3);
 
   LOG(I, "Pushing mesh into scene");
 
@@ -196,6 +219,8 @@ void Voxelate::clean() {
   VulkanInstance &vki = EngineData::i()->vkInstWrapper;
   VkDevice &device = vki.device;
 
+  VmaAllocator &allocator = vki.vmaAllocator;
+
   // Cleanup Depth Buffering Resources
   vkDestroyImageView(device, EngineData::i()->vkInstWrapper.depthImage.vkImageView, nullptr);
   vkDestroyImage(device, EngineData::i()->vkInstWrapper.depthImage.vkImage, nullptr);
@@ -204,8 +229,7 @@ void Voxelate::clean() {
   VkSetup::cleanupOldSwapchain(device);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroyBuffer(device, vki.uniformBuffers[i], nullptr);
-    vkFreeMemory(device, vki.uniformBufferMemory[i], nullptr);
+    vmaDestroyBuffer(allocator, vki.uniformBuffers[i].buffer, nullptr);
   }
 
   vkDestroyDescriptorPool(device, vki.descriptorPool, nullptr);
@@ -219,8 +243,8 @@ void Voxelate::clean() {
       vkDestroyBuffer(device, m.vertexBuffer.buffer, nullptr);
       vkDestroyBuffer(device, m.indexBuffer.indexBuffer, nullptr);
 
-      vkFreeMemory(device, m.vertexBuffer.bufferMemory, nullptr);
-      vkFreeMemory(device, m.indexBuffer.indexBufferMemory, nullptr);
+      vmaFreeMemory(allocator, m.vertexBuffer.allocation);
+      vmaFreeMemory(allocator, m.indexBuffer.allocation);
     }
   }
 

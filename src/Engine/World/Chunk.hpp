@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VulkanPipeline/Pipeline/Buffer/Buffer.h>
+#include "VulkanPipeline/Pipeline/Buffer/Buffer.h"
 #include <deque>
 
 #include "Block.hpp"
@@ -14,7 +14,7 @@ struct ChunkMesh {
 
 class Chunk {
   std::deque<Material> blocks;
-  ChunkMesh chunkMesh;
+  ChunkMesh chunkMesh{};
 public:
   Material getBlockUnsafe(int x, int y, int z);
   Material& getBlock(int xSafe, int ySafe, int zSafe);

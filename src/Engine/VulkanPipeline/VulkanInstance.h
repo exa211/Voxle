@@ -3,7 +3,10 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
+#include "Buffer/Buffer.h"
 #include "Image/Image.h"
+
+#include "vk_mem_alloc.h"
 
 #include <vector>
 #include <iostream>
@@ -15,9 +18,10 @@ const std::vector<const char *> deviceExtensions = {
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-class VulkanInstance {
-public:
+struct VulkanInstance {
   VkInstance vkInstance;
+
+  VmaAllocator vmaAllocator{};
 
   VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -66,8 +70,7 @@ public:
   std::vector<VkDescriptorSet> descriptorSets;
 
   // Uniform Buffer Objects
-  std::vector<VkBuffer> uniformBuffers;
-  std::vector<VkDeviceMemory> uniformBufferMemory;
+  std::vector<Buffers::VmaBuffer> uniformBuffers;
   std::vector<void*> uniformBuffersMapped;
 
   bool framebufferWasResized = false;

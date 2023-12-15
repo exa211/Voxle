@@ -55,7 +55,7 @@ VkSurfaceFormatKHR SwapchainSuitability::chooseSurfaceFormat(const std::vector<V
 VkPresentModeKHR SwapchainSuitability::choosePresentMode(const std::vector<VkPresentModeKHR> &availableModes) {
   for (const auto& mode : availableModes) {
     LOG(I, "Available PRESENT MODE: " + std::to_string(mode));
-    if (mode == VK_PRESENT_MODE_FIFO_KHR) {
+    if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
       return mode;
     }
   }

@@ -9,4 +9,9 @@
 /dataSources.local.xml
 /cmake-build-release/
 .idea
-/lib/*
+/lib/FastNoise2/
+/lib/glfw/
+/lib/glm/
+/lib/imgui/
+/lib/stb/
+/lib/VulkanMemoryAllocator/

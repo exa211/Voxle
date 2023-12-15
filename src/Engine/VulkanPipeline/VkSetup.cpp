@@ -213,6 +213,18 @@ void VkSetup::createLogicalDevice() {
   LOG(I, "Created Device Queues");
 }
 
+void VkSetup::createVmaAllocator() {
+  LOG(I, "Creating VmaAllocator");
+  VmaAllocatorCreateInfo createInfo{};
+  createInfo.instance = EngineData::i()->vkInstWrapper.vkInstance;
+  createInfo.physicalDevice = EngineData::i()->vkInstWrapper.physicalDevice;
+  createInfo.device = EngineData::i()->vkInstWrapper.device;
+  createInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+  if(vmaCreateAllocator(&createInfo, &EngineData::i()->vkInstWrapper.vmaAllocator) != VK_SUCCESS) {
+    LOG(F, "Could not create Vma Allocator.");
+  }
+}
+
 void VkSetup::createSwapchain(bool isResize) {
   VkPhysicalDevice &physicalDevice = EngineData::i()->vkInstWrapper.physicalDevice;
   VkSurfaceKHR &surface = EngineData::i()->vkInstWrapper.surface;
@@ -390,7 +402,7 @@ void VkSetup::createDescriptorPool() {
 }
 
 void VkSetup::createDescriptorSets() {
-  Buffer::createUniformBuffers();
+  Buffers::createUniformBuffers();
 
   std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, EngineData::i()->vkInstWrapper.descriptorSetLayout);
 
@@ -412,9 +424,9 @@ void VkSetup::createDescriptorSets() {
 void VkSetup::populateDescriptors(VulkanImage::InternalImage& image) {
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = EngineData::i()->vkInstWrapper.uniformBuffers[i];
+    bufferInfo.buffer = EngineData::i()->vkInstWrapper.uniformBuffers[i].buffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+    bufferInfo.range = sizeof(Buffers::UniformBufferObject);
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

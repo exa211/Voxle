@@ -15,11 +15,6 @@ SuitabilityChecker::checkDeviceExtensionSupport(VkPhysicalDevice device, const s
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
- LOG(I, "Available Device Extensions: ");
-  for(VkExtensionProperties props : availableExtensions) {
-    std::cout << '\t' << props.extensionName << '\n';
-  }
-
   std::set<std::string> requiredExtensions(extensions.begin(), extensions.end());
 
   requiredExtensions.emplace("VK_KHR_shader_non_semantic_info");

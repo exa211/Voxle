@@ -63,8 +63,8 @@ void Voxelate::initWindow() {
 
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
   const GLFWvidmode *vidMode = glfwGetVideoMode(primaryMonitor);
-  int cX = (vidMode->width / 2) - W_WIDTH / 2;
-  int cY = (vidMode->height / 2) - W_HEIGHT / 2;
+  int cX = (vidMode->width / 2) - static_cast<int>(W_WIDTH / 2);
+  int cY = (vidMode->height / 2) - static_cast<int>(W_HEIGHT / 2);
 
   glfwSetWindowPos(EngineData::i()->window, cX, cY);
 

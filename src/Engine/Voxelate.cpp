@@ -94,7 +94,7 @@ void Voxelate::initVulkan() {
 
   // TODO: Cache textures in map or something else so we can delete these after and free memory
   VulkanImage::Image leaveTexture{};
-  Resources::createTexture(leaveTexture, "../res/texture/andesite.png");
+  Resources::createTexture(leaveTexture, "andesite.png");
 
   // Descriptors
   VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();

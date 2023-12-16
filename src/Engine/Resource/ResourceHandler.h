@@ -4,7 +4,10 @@
 #include "stb_image.h"
 #include <string>
 
-namespace Resources {
+class Resources {
   // TODO: Texture Handling
-  void createTexture(VulkanImage::Image &t, const std::string& path);
-}
+public:
+  static void createTexture(VulkanImage::Image &t, const std::string& path);
+private:
+  inline static const std::string TEXTURE_PATH = VOXLE_ROOT + std::string("/res/texture/");
+};

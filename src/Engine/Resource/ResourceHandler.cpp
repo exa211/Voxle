@@ -11,12 +11,13 @@
 /**
  * Loads a Texture and creates VkImage, VkImageView also transitions the pipeline.
  * @param t Image Reference
- * @param path Path to texture in res folder
+ * @param path Relative path in res/texture folder
  */
 void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
-  LOG(D, "Loading image " + path);
+  std::string texture_path = TEXTURE_PATH + path;
+  LOG(D, "Loading image " + texture_path);
   stbi_set_flip_vertically_on_load(true);
-  stbi_uc *pixels = stbi_load(path.c_str(), &t.width, &t.height, &t.channels, STBI_rgb_alpha);
+  stbi_uc *pixels = stbi_load(texture_path.c_str(), &t.width, &t.height, &t.channels, STBI_rgb_alpha);
   if (!pixels) {
     LOG(W, "Could not load image " + path);
     return;

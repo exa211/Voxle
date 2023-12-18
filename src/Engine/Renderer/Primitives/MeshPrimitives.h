@@ -46,7 +46,6 @@ struct Vertex {
 struct BlockVertex {
   unsigned int packedVert;
 
-
   static VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription{};
     bindingDescription.binding = 0;
@@ -55,14 +54,14 @@ struct BlockVertex {
     return bindingDescription;
   }
 
-  static VkVertexInputAttributeDescription getAttributeDescriptions() {
-    VkVertexInputAttributeDescription attrDesc{};
+  static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+    std::vector<VkVertexInputAttributeDescription> attrDesc{1};
 
     // Packed values Vertex Pos, Index, TexID (wip)
-    attrDesc.binding = 0;
-    attrDesc.location = 0;
-    attrDesc.format = VK_FORMAT_R32_UINT;
-    attrDesc.offset = offsetof(BlockVertex, packedVert);
+    attrDesc[0].binding = 0;
+    attrDesc[0].location = 0;
+    attrDesc[0].format = VK_FORMAT_R32_UINT;
+    attrDesc[0].offset = offsetof(BlockVertex, packedVert);
     return attrDesc;
   }
 };

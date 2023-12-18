@@ -24,7 +24,7 @@ public:
   float mouseSensitivity = 200.0f;
   float flySpeed = 15.0f;
 
-  float fov = 75;
+  float fov = 90;
   float nearPlane = 0.1f;
   float farPlane = 1000.0f;
 

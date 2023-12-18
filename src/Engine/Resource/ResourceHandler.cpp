@@ -67,3 +67,18 @@ void Resources::createTexture(VulkanImage::Image &t, const std::string &path) {
 
   LOG(D, "Created Texture " + path);
 }
+
+void Resources::createTextureArray(std::vector<VulkanImage::Image> images) {
+  int textureArrayWidth = images[0].width;
+  int textureArrayHeight = images[0].height;
+
+  VkDeviceSize textureSize = images[0].width * images[0].height * 4; // 4 Channels RGBA
+
+  int layerCount = 2;
+
+  std::vector<VkBufferImageCopy> bufferCopyRegions;
+
+  for(int layer = 0; layer < layerCount; layer++) {
+  }
+
+}

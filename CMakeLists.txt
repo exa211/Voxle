@@ -91,7 +91,11 @@ add_executable(Voxle
         src/Engine/World/Chunk.cpp
         src/Engine/World/Chunk.hpp
         src/Engine/VulkanPipeline/VulkanDebug.h
-        src/Engine/VulkanPipeline/VulkanDebug.cpp)
+        src/Engine/VulkanPipeline/VulkanDebug.cpp
+        src/Engine/Threading/ThreadPool.cpp
+        src/Engine/Threading/ThreadPool.hpp
+        src/Engine/World/ChunkHandler.cpp
+        src/Engine/World/ChunkHandler.hpp)
 
 target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise GPUOpen::VulkanMemoryAllocator)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64 -DVOXLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

@@ -50,6 +50,10 @@ std::vector<signed char> rightFace = {
   1, 1, 1,
 };
 
+glm::ivec3* Chunk::getPos() {
+  return &pos;
+}
+
 Material Chunk::getBlockUnsafe(int x, int y, int z) {
   int index = x + (y * CHUNK_SIZE) + (z * CHUNK_SIZE * CHUNK_SIZE);
   if (index < 0 || index > blocks.size()) return Materials::AIR;
@@ -65,8 +69,29 @@ ChunkMesh& Chunk::getChunkMesh() {
   return chunkMesh;
 }
 
-void Chunk::generate(std::vector<float> &noise) {
+bool Chunk::isChunkEmpty() const {
+  return bEmpty;
+}
+
+bool Chunk::isGenerated() const {
+  return bGenerated;
+}
+
+bool Chunk::isLoaded() const {
+  return bLoaded;
+}
+
+void Chunk::setChunkLoaded(bool loaded) {
+  bLoaded = loaded;
+}
+
+void Chunk::setChunkGenerated(bool generated) {
+  bGenerated = generated;
+}
+
+void Chunk::generate(std::vector<float>& noise) {
   int index{0};
+
   for (int z = 0; z < CHUNK_SIZE; ++z) {
     for (int y = 0; y < CHUNK_SIZE; ++y) {
       for (int x = 0; x < CHUNK_SIZE; ++x) {
@@ -77,22 +102,27 @@ void Chunk::generate(std::vector<float> &noise) {
           continue;
         }
 
-        blocks.push_back(Material{"voxle:dirt"});
+        if(bEmpty) bEmpty = false; // <- If we found a single solid block set the chunk to be not empty
+        blocks.push_back(Materials::SOLID);
       }
     }
   }
-
 }
 
 void Chunk::regenerateMesh() {
+  if(bEmpty) return;
+
   int vertIndex{0};
   int indicesCount{0};
+
+  chunkMesh.vertices.reserve(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+  chunkMesh.indices.reserve(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
 
   for (int x = 0; x < CHUNK_SIZE; ++x) {
     for (int y = 0; y < CHUNK_SIZE; ++y) {
       for (int z = 0; z < CHUNK_SIZE; ++z) {
         Material block = getBlockUnsafe(x, y, z);
-        if (block.Namespace == "voxle:air") continue;
+        if (block.id == 0) continue;
 
         Material blockFront = getBlockUnsafe(x, y, z + 1);
         Material blockBack = getBlockUnsafe(x, y, z - 1);
@@ -104,13 +134,13 @@ void Chunk::regenerateMesh() {
         glm::ivec3 pos{x, y, z};
 
         // Front face
-        if (z == CHUNK_SIZE - 1 || blockFront.Namespace == "voxle:air") {
+        if (z == CHUNK_SIZE - 1 || blockFront.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = frontFace[vertIndex++] + pos.x;
             unsigned int vertY = frontFace[vertIndex++] + pos.y;
             unsigned int vertZ = frontFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -120,13 +150,13 @@ void Chunk::regenerateMesh() {
         }
 
         // Back face
-        if (z == 0 || blockBack.Namespace == "voxle:air") {
+        if (z == 0 || blockBack.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = backFace[vertIndex++] + pos.x;
             unsigned int vertY = backFace[vertIndex++] + pos.y;
             unsigned int vertZ = backFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -136,13 +166,13 @@ void Chunk::regenerateMesh() {
         }
 
         // Right face
-        if (x == CHUNK_SIZE - 1 || blockRight.Namespace == "voxle:air") {
+        if (x == CHUNK_SIZE - 1 || blockRight.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = rightFace[vertIndex++] + pos.x;
             unsigned int vertY = rightFace[vertIndex++] + pos.y;
             unsigned int vertZ = rightFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -152,13 +182,13 @@ void Chunk::regenerateMesh() {
         }
 
         // Left face
-        if (x == 0 || blockLeft.Namespace == "voxle:air") {
+        if (x == 0 || blockLeft.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = leftFace[vertIndex++] + pos.x;
             unsigned int vertY = leftFace[vertIndex++] + pos.y;
             unsigned int vertZ = leftFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -168,13 +198,13 @@ void Chunk::regenerateMesh() {
         }
 
         // Top face
-        if (y == CHUNK_SIZE - 1 || blockTop.Namespace == "voxle:air") {
+        if (y == CHUNK_SIZE - 1 || blockTop.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = topFace[vertIndex++] + pos.x;
             unsigned int vertY = topFace[vertIndex++] + pos.y;
             unsigned int vertZ = topFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -184,13 +214,13 @@ void Chunk::regenerateMesh() {
         }
 
         // Bot face
-        if (y == 0 || blockBot.Namespace == "voxle:air") {
+        if (y == 0 || blockBot.id == 0) {
           for (int i = 0; i < 4; i++) {
             unsigned int vertX = botFace[vertIndex++] + pos.x;
             unsigned int vertY = botFace[vertIndex++] + pos.y;
             unsigned int vertZ = botFace[vertIndex++] + pos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
-            chunkMesh.vertices.push_back(BlockVertex{vert});
+            chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
           for (uint8_t i: faceIndices) {
             chunkMesh.indices.push_back(i + indicesCount);
@@ -202,4 +232,11 @@ void Chunk::regenerateMesh() {
       }
     }
   }
+
+  // Face Construction done -> create buffers in mesh struct
+
+  Mesh& mesh = chunkMesh.mesh;
+  mesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunkMesh.vertices);
+  mesh.indexBuffer = Buffers::createIndexBuffer(chunkMesh.indices);
+  mesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, pos.z * CHUNK_SIZE});
 }

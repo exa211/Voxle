@@ -13,6 +13,8 @@
 #include "imgui_impl_vulkan.h"
 #include "Voxelate.h"
 
+#include "World/Chunk.hpp"
+
 #include <array>
 
 bool displayFrameProfiler = true;
@@ -44,7 +46,8 @@ namespace UI {
     poolInfo.poolSizeCount = std::size(poolSizes);
 
     VkDescriptorPool uiDescriptorPool;
-    if (vkCreateDescriptorPool(EngineData::i()->vkInstWrapper.device, &poolInfo, nullptr, &uiDescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(EngineData::i()->vkInstWrapper.device, &poolInfo, nullptr, &uiDescriptorPool) !=
+        VK_SUCCESS)
       LOG(F, "Could not create Engine User Interface");
 
     ImGui::CreateContext();
@@ -76,7 +79,7 @@ namespace UI {
 
     ImGui_ImplVulkan_Init(&initInfo, EngineData::i()->vkInstWrapper.renderPass);
 
-    Pipeline::immediateSubmit([&](VkCommandBuffer cmd) {
+    VulkanPipeline::immediateSubmit([&](VkCommandBuffer cmd) {
       ImGui_ImplVulkan_CreateFontsTexture();
     });
 
@@ -101,18 +104,20 @@ namespace UI {
 
   void renderMainMenuBar() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("##MainMenuBarRect01", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+    ImGui::Begin("##MainMenuBarRect01", nullptr,
+                 ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar |
+                 ImGuiWindowFlags_NoMove);
     ImGui::SetWindowPos(ImVec2(0, 0));
     ImGui::SetWindowSize(ImVec2(W_WIDTH, 30));
     {
-      ImDrawList* drawList = ImGui::GetWindowDrawList();
+      ImDrawList *drawList = ImGui::GetWindowDrawList();
       drawList->AddRectFilled(ImVec2(0, 0), ImVec2(W_WIDTH, 30), ImColor(40, 40, 40, 255));
       //drawList->AddQuadFilled(ImVec2(0, 0), ImVec2(W_WIDTH, 0), ImVec2(0, 30), ImVec2(W_WIDTH, 30), ImColor(20, 30, 235, 255));
       ImGui::SetCursorPos(ImVec2(W_WIDTH - 16 - 3, 3));
-      if(ImGui::Button("X", ImVec2(16, 16))) {
+      if (ImGui::Button("X", ImVec2(16, 16))) {
         glfwSetWindowShouldClose(EngineData::i()->window, true);
       }
-      if(ImGui::IsItemHovered()) {
+      if (ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
       }
       ImGui::SetCursorPos(ImVec2(5, 7));
@@ -127,19 +132,19 @@ namespace UI {
     ImGui::MenuItem("File");
     ImGui::SetCursorPos(ImVec2(W_WIDTH - 160, 0));
 
-    if(ImGui::Button("X")) {
+    if (ImGui::Button("X")) {
       glfwSetWindowShouldClose(EngineData::i()->window, true);
     }
-    if(ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-    if(ImGui::Button("_")) {
+    if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    if (ImGui::Button("_")) {
       glfwIconifyWindow(EngineData::i()->window);
     }
-    if(ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
     ImGui::EndMainMenuBar();
   }
 
-  void renderMainInterface(Camera& cam) {
+  void renderMainInterface(Camera &cam) {
 
     // Init new frame for ImGui
     ImGui_ImplVulkan_NewFrame();
@@ -147,21 +152,36 @@ namespace UI {
 
     // Debug Panel
     ImGui::NewFrame();
-      ImGui::Begin("##DebugPanel", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin("##DebugPanel", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-      ImGui::Text("Camera Position: ");
-      ImGui::SameLine();
+    ImGui::Text("Camera Position: ");
+    ImGui::SameLine();
 
-      std::string camPosStr;
-      camPosStr.append("(");
-      camPosStr.append(std::to_string(cam.position.x) + ", ");
-      camPosStr.append(std::to_string(cam.position.y) + ", ");
-      camPosStr.append(std::to_string(cam.position.z) + ")");
+    std::string camPosStr;
+    camPosStr.append("(");
+    camPosStr.append(std::to_string(cam.position.x) + ", ");
+    camPosStr.append(std::to_string(cam.position.y) + ", ");
+    camPosStr.append(std::to_string(cam.position.z) + ")");
 
-      ImGui::Text(camPosStr.c_str());
+    ImGui::Text(camPosStr.c_str());
 
-      ImGui::End();
-    ImGui::EndFrame();
+    int x = (int) (cam.position.x + CHUNK_SIZE) / CHUNK_SIZE;
+    int y = (int) (cam.position.y + CHUNK_SIZE) / CHUNK_SIZE;
+    int z = (int) (cam.position.z + CHUNK_SIZE) / CHUNK_SIZE;
+
+    std::string camChunkPos;
+    camChunkPos.append(std::to_string(x) + ", ");
+    camChunkPos.append(std::to_string(y) + ", ");
+    camChunkPos.append(std::to_string(z) + ", ");
+
+
+    ImGui::Text(camChunkPos.c_str());
+
+    ImGui::End();
+
+    renderFrameProfiler();
+
+    ImGui::Render();
 
     // ---- Start draw commands ImGui ----
 
@@ -176,8 +196,6 @@ namespace UI {
 //    }
 
     // ---- End draw commands ImGui ----
-
-    ImGui::Render();
 
   }
 }

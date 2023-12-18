@@ -866,7 +866,7 @@ spv = {
 
     Capability = {
         Matrix = 0,
-        Shader = 1,
+        ShaderUtil = 1,
         Geometry = 2,
         Tessellation = 3,
         Addresses = 4,

@@ -1,7 +1,7 @@
 #include "PrimitiveRenderer.h"
 
 void PrimitiveRenderer::render(Camera& cam) {
-  uint32_t currentFrame = 0;
+  int& currentFrame = EngineData::i()->vkInstWrapper.currentFrame;
 
   VkDevice &device = EngineData::i()->vkInstWrapper.device;
   VkSwapchainKHR &swapChain = EngineData::i()->vkInstWrapper.swapChain;
@@ -10,6 +10,7 @@ void PrimitiveRenderer::render(Camera& cam) {
   VkCommandBuffer& cBuffer = EngineData::i()->vkInstWrapper.commandBuffers[currentFrame];
 
   // "Vulkan Mutex" - Semaphores are like signals that can signal each other, they block each other for synchronization
+  // Use this for multithreading
   VkSemaphore& imageSema = EngineData::i()->vkInstWrapper.imageAvailableSemas[currentFrame];
   VkSemaphore& renderSema = EngineData::i()->vkInstWrapper.renderFinishedSemas[currentFrame];
 
@@ -32,7 +33,7 @@ void PrimitiveRenderer::render(Camera& cam) {
    *  RECORD COMMAND BUFFER
    **/
 
-  Pipeline::recordCommandBuffer(cam, cBuffer, imageIndex);
+  VulkanPipeline::recordCommandBuffer(cam, cBuffer, imageIndex);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -73,7 +74,6 @@ void PrimitiveRenderer::render(Camera& cam) {
   } else if(ifErr != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
 }
 
 void PrimitiveRenderer::updateUniformBuffers(uint32_t currentFrame, Camera &cam) {

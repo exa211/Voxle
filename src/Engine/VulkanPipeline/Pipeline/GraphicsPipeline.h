@@ -1,22 +1,60 @@
 #pragma once
 
 #include <functional>
+#include <utility>
+
+#include "imgui_impl_vulkan.h"
+
 #include "Shader/Shader.h"
 #include "../Queue/QueueHelper.h"
-#include "../Engine/Renderer/Primitives/MeshPrimitives.h"
-#include "../Engine/Scene/SceneManager.h"
-#include "imgui_impl_vulkan.h"
+
 #include "../VkSetup.h"
 #include "Camera/Camera.h"
 
-static struct GraphicsPipeline {
+static struct GraphicsPipelineStages {
   VkPipelineStageFlags sourceStage;
   VkPipelineStageFlags dstStage;
 } graphicsPipeline;
 
-namespace Pipeline {
+namespace VulkanPipeline {
 
-  void createGraphicsPipeline(VkDescriptorSetLayout& descriptor);
+  class Pipeline {
+  public:
+    explicit Pipeline(std::string  pipelineName) : pipelineName(std::move(pipelineName)) {}
+
+    void build();
+    void bindShader(const std::string& sName);
+    void setVertexDescriptions(VkVertexInputBindingDescription desc,
+                          std::vector<VkVertexInputAttributeDescription> attrDescriptions);
+
+    void setInputAssembly(VkPrimitiveTopology topology);
+    void setDescriptorLayout(VkDescriptorSetLayout& layout);
+    void setRenderPass(VkRenderPass inRenderPass);
+    void setPolygonMode(VkPolygonMode inPolygonMode);
+
+    // >- GETTER -<
+    VkPipeline& getPipeline();
+    VkPipelineLayout& getPipelineLayout();
+  private:
+    std::string pipelineName{"undefined"};
+    VkPipeline pipeline{};
+    // Create infos
+    VkPipelineVertexInputStateCreateInfo vertInputCreateInfo{};
+    VkPipelineInputAssemblyStateCreateInfo vertInputAssemblyCreateInfo{};
+    VkPipelineRasterizationStateCreateInfo rasterCreateInfo{};
+
+    VkDescriptorSetLayout descSetLayout{};
+    VkPipelineLayout pipelineLayout{};
+
+    VkViewport viewport{};
+    VkRect2D scissor{};
+
+    VkRenderPass renderpass{};
+
+    VkPolygonMode polygonMode;
+
+    VulkanShader::Shader shader{};
+  };
 
   void createFramebuffers();
 

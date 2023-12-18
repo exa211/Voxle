@@ -34,18 +34,11 @@ public:
   void run();
 
 private:
-  void initEngine();
-
   void initWindow();
-
   void initVulkan();
-
   void initScene();
-
   void initGui();
-
   void update(float deltaTime);
   void loop();
-
-  void clean();
+  static void clean();
 };

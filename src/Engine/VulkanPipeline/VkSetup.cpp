@@ -7,6 +7,8 @@
 #include "Validation/VulkanValidationLayer.h"
 #include "VulkanDebug.h"
 
+#include <Engine.h>
+
 void VkSetup::createVulkanInstance() {
   if (!VulkanValidation::checkValidationLayerSupport())
     LOG(F, "Using validation layers but found none");
@@ -311,7 +313,7 @@ void VkSetup::createImageViews() {
 }
 
 void VkSetup::createSampler() {
-  LOG(I, "Created Main Texture Sampler (VkSetup.cpp)");
+  LOG(D, "Created Global Texture Sampler");
   VulkanImage::Sampler::createTextureSampler(EngineData::i()->vkInstWrapper.mainSampler, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 }
 
@@ -329,8 +331,8 @@ void VkSetup::recreateSwapchain(VkDevice &device) {
 
   createSwapchain(true);
   createImageViews();
-  Pipeline::createDepthBufferingObjects();
-  Pipeline::createFramebuffers();
+  VulkanPipeline::createDepthBufferingObjects();
+  VulkanPipeline::createFramebuffers();
 }
 
 void VkSetup::cleanupOldSwapchain(VkDevice &device) {

@@ -15,6 +15,8 @@
 
 #include <World/Chunk.hpp>
 
+#include <Scene/SceneManager.h>
+
 static void callback_glfwWindowResized(GLFWwindow *window, int w, int h) {
   EngineData::i()->vkInstWrapper.framebufferWasResized = true;
 }
@@ -31,12 +33,10 @@ static void callback_glfwKey(GLFWwindow* window, int key, int scancode, int acti
 }
 
 void Voxelate::run() {
-  LOG(I, "Running engine...");
-  initEngine();
-}
-
-void Voxelate::initEngine() {
   initWindow();
+
+  EngineData::i()->threadPool.start(2);
+
   initVulkan();
 
   initScene();
@@ -46,6 +46,9 @@ void Voxelate::initEngine() {
   clean();
 }
 
+/**
+ *  Create the Applications window.
+ **/
 void Voxelate::initWindow() {
   glfwInit();
 
@@ -71,6 +74,9 @@ void Voxelate::initWindow() {
   glfwGetFramebufferSize(EngineData::i()->window, &EngineData::i()->w_frameBuffer, &EngineData::i()->h_frameBuffer);
 }
 
+/**
+ *  Initialize all Vulkan related rendering stuff.
+ **/
 void Voxelate::initVulkan() {
   // Vk Setup Initialization
   VkSetup::createVulkanInstance();
@@ -85,7 +91,7 @@ void Voxelate::initVulkan() {
   // Vma Allocator creation
   VkSetup::createVmaAllocator();
 
-  Pipeline::createCommandPool();
+  VulkanPipeline::createCommandPool();
 
   VkSetup::createSwapchain();
   VkSetup::createImageViews();
@@ -93,26 +99,60 @@ void Voxelate::initVulkan() {
   VkSetup::createSampler();
 
   // TODO: Cache textures in map or something else so we can delete these after and free memory
-  VulkanImage::Image leaveTexture{};
-  Resources::createTexture(leaveTexture, "andesite.png");
+  VulkanImage::Image texture{};
+  Resources::createTexture(texture, "stone.png");
 
   // Descriptors
   VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();
   VkSetup::createDescriptorPool();
   VkSetup::createDescriptorSets();
-  VkSetup::populateDescriptors(leaveTexture.image);
+  VkSetup::populateDescriptors(texture.image);
 
-  Pipeline::createDepthBufferingObjects();
+  VulkanPipeline::createDepthBufferingObjects();
 
-  // Graphics Pipeline
+  // Renderpass creation
+  // TODO: Abstraction
   RenderPass::create();
-  Pipeline::createGraphicsPipeline(descriptorLayout);
 
-  Pipeline::createFramebuffers();
+  // Test OOP Pipeline
+  VulkanPipeline::Pipeline debugPipeline{"test"};
+  debugPipeline.bindShader("shader");
+  debugPipeline.setVertexDescriptions(BlockVertex::getBindingDescription(), BlockVertex::getAttributeDescriptions());
+  debugPipeline.setDescriptorLayout(descriptorLayout);
+  debugPipeline.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
+  debugPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
+  debugPipeline.build();
+  EngineData::i()->vkInstWrapper.globalPipeline = debugPipeline;
+
+  VulkanPipeline::createFramebuffers();
 
   Commandbuffer::create();
 
-  Pipeline::createSyncObjects();
+  VulkanPipeline::createSyncObjects();
+}
+
+// !!! CHUNK MULTITHREADING HIGHLY WIP !!!
+std::vector<Chunk> chunksGenerated;
+const int size = 2;
+
+// TODO: At the moment this is not mutexed and will do undefined behaviour!
+void generateChunks() {
+  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("EADNzCxAGQATAClcDz4NAAQAAADNzCxAGQAJAAEAAAAAgD8A7FG4PQCF6zlBAQQAAAAAAFK4zkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtejPQ==");
+  for(int x = -size; x < size; x++) {
+    for(int y = -size; y < size; y++) {
+      for(int z = -size; z < size; z++) {
+        std::vector<float> noise(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+        fnGenerator->GenUniformGrid3D(noise.data(), z * CHUNK_SIZE, y * CHUNK_SIZE, x * CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
+        Chunk chunk{x, y, z};
+        chunk.generate(noise);
+        if(chunk.isChunkEmpty()) continue; // <- If chunk generated empty
+        chunk.regenerateMesh();
+
+        chunk.setChunkGenerated(true);
+        chunksGenerated.push_back(chunk);
+      }
+    }
+  }
 }
 
 // Initializes the scene
@@ -121,43 +161,11 @@ void Voxelate::initScene() {
 
   LOG(I, "FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
 
-  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("GQATAMP1KD8NAAQAAAAAACBACQAAZmYmPwAAAAA/AQQAAAAAAPYojEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+  // Create a separate thread and detach from main thread so rendering doesn't get blocked
+  std::thread chunkBuilder(generateChunks);
+  chunkBuilder.detach();
 
-  std::vector<float> noise(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
-
-  Chunk chunk{};
-  chunk.generate(noise);
-  chunk.regenerateMesh();
-
-  fnGenerator->GenUniformGrid3D(noise.data(), 0, 0, -CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
-
-  Chunk chunk2{};
-  chunk2.generate(noise);
-  chunk2.regenerateMesh();
-
-  fnGenerator->GenUniformGrid3D(noise.data(), 0, CHUNK_SIZE, 0, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
-
-  Chunk chunk3{};
-  chunk3.generate(noise);
-  chunk3.regenerateMesh();
-
-  LOG(D, "Creating meshes");
-
-  Mesh combinedMesh{};
-  combinedMesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunk.getChunkMesh().vertices);
-  combinedMesh.indexBuffer = Buffers::createIndexBuffer(chunk.getChunkMesh().indices);
-
-  Mesh combinedMesh2{};
-  combinedMesh2.vertexBuffer = Buffers::createBlockVertexBuffer(chunk2.getChunkMesh().vertices);
-  combinedMesh2.indexBuffer = Buffers::createIndexBuffer(chunk2.getChunkMesh().indices);
-  combinedMesh2.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {-CHUNK_SIZE, 0, 0});
-
-  mainScene.meshesInScene.push_back(combinedMesh);
-  mainScene.meshesInScene.push_back(combinedMesh2);
-  //mainScene.meshesInScene.push_back(combinedMesh3);
-
-  LOG(I, "Pushing mesh into scene");
+  LOG(D, "Settings scenes");
 
   SceneManager::i()->curScene = mainScene;
   SceneManager::i()->scenesLoaded.push_back(mainScene);
@@ -170,6 +178,24 @@ void Voxelate::initGui() {
 
 void Voxelate::update(float deltaTime) {
   cam.update(EngineData::i()->window, deltaTime);
+
+  int x = (int) (cam.position.x - CHUNK_SIZE) / CHUNK_SIZE;
+  int y = (int) (cam.position.y - CHUNK_SIZE) / CHUNK_SIZE;
+  int z = (int) (cam.position.z - CHUNK_SIZE) / CHUNK_SIZE;
+
+  // !!! UPDATE CHUNKS HIGHLY WIP !!!
+  // TODO: Restructure this
+  for(Chunk& chunk : chunksGenerated) {
+    glm::ivec3* chunkPos = chunk.getPos();
+//    if(chunkPos->x == x && chunkPos->y == y && chunkPos->z == z && !chunk.isLoaded()) {
+//      chunk.setChunkLoaded(true);
+//      SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
+//    }
+    if(chunk.isLoaded()) continue;
+    chunk.setChunkLoaded(true);
+    SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
+  }
+
 }
 
 void Voxelate::loop() {
@@ -177,41 +203,23 @@ void Voxelate::loop() {
   float deltaSeconds = 0.0f;
   double timeStamp = glfwGetTime();
 
-  /*
-   *  LOOP
-   */
-
   while (!glfwWindowShouldClose(EngineData::i()->window)) {
     const double newTimeStamp = glfwGetTime();
     deltaSeconds = (float) (newTimeStamp - timeStamp);
     timeStamp = newTimeStamp;
     EngineData::i()->frameProfiler.tick(deltaSeconds);
 
-    //float ms = 1000/time;
-
     glfwPollEvents();
 
-    /*
-   *  UPDATE
-   */
     update(deltaSeconds);
-
-    // Future dockspace layout
-    //ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     // Main Entry for rendering the Engine User Interface
     UI::renderMainInterface(cam);
-
-    //ImGui::ShowDemoWindow();
-
-    //ImGui::ShowMetricsWindow();
-
     // ACTUAL RENDERING
     PrimitiveRenderer::render(cam);
   }
 
   vkDeviceWaitIdle(EngineData::i()->vkInstWrapper.device);
-
 }
 
 void Voxelate::clean() {
@@ -248,8 +256,8 @@ void Voxelate::clean() {
     }
   }
 
-  vkDestroyPipeline(device, vki.pipeline, nullptr);
-  vkDestroyPipelineLayout(device, vki.pipelineLayout, nullptr);
+  vkDestroyPipeline(device, vki.globalPipeline.getPipeline(), nullptr);
+  vkDestroyPipelineLayout(device, vki.globalPipeline.getPipelineLayout(), nullptr);
 
   vkDestroyRenderPass(device, vki.renderPass, nullptr);
 

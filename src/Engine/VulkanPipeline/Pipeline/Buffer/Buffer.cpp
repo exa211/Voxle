@@ -5,11 +5,16 @@
 
 #include <VulkanPipeline/Pipeline/Commandbuffer.h>
 
+//#define BUFFER_DEBUG
+
 Buffers::VmaBuffer Buffers::createVertexBuffer(const std::vector<Vertex> &vertices) {
-  VkDevice &device = EngineData::i()->vkInstWrapper.device;
   VmaAllocator &allocator = EngineData::i()->vkInstWrapper.vmaAllocator;
 
   VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+#ifdef BUFFER_DEBUG
+  LOG(D, bufferSize);
+#endif
 
   // Create the Staging VkBuffer
   // This is used to transfer the given vertex data into high performance memory from the graphics card
@@ -40,10 +45,12 @@ Buffers::VmaBuffer Buffers::createVertexBuffer(const std::vector<Vertex> &vertic
 }
 
 Buffers::VmaBuffer Buffers::createBlockVertexBuffer(const std::vector<BlockVertex> &blockVertices) {
-  VkDevice &device = EngineData::i()->vkInstWrapper.device;
   VmaAllocator &allocator = EngineData::i()->vkInstWrapper.vmaAllocator;
-
   VkDeviceSize bufferSize = sizeof(blockVertices[0]) * blockVertices.size();
+
+#ifdef BUFFER_DEBUG
+  LOG(D, bufferSize);
+#endif
 
   // Create the Staging VkBuffer
   // This is used to transfer the given vertex data into high performance memory from the graphics card
@@ -52,7 +59,9 @@ Buffers::VmaBuffer Buffers::createBlockVertexBuffer(const std::vector<BlockVerte
                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer.buffer,
                   stagingBuffer.allocation);
 
+#ifdef BUFFER_DEBUG
   LOG(D, "creating block vertex buffer after staging buffer");
+#endif
 
   // This is mapping the buffer memory to CPU accessible memory
   void *data;
@@ -124,7 +133,11 @@ void Buffers::createUniformBuffers() {
 
 void Buffers::createBufferVMA(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags propFlags, VkBuffer &buffer,
                               VmaAllocation &allocation) {
-  VkDevice &device = EngineData::i()->vkInstWrapper.device;
+
+  if(size == 0) {
+    LOG(W, "Buffer size cannot be 0");
+    return;
+  }
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -177,9 +190,11 @@ void Buffers::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemory
   vkBindBufferMemory(device, buffer, deviceMemory, 0);
 }
 
-
+/**
+ * @brief This copies the given srcBuffer to the dstBuffer (likely on the gpu)
+ *        It should be noted that this invokes a single command buffer record and is currently not thread safe.
+ * */
 void Buffers::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-
   VkCommandBuffer singleUseCmdBuffer = Commandbuffer::recordSingleTime();
 
   VkBufferCopy copyRegion{};

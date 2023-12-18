@@ -9,4 +9,6 @@ public:
   Buffers::VmaBuffer vertexBuffer{};
   Buffers::IndexBuffer indexBuffer{};
   MeshPushConstant meshRenderData{};
+
+  void destroy();
 };

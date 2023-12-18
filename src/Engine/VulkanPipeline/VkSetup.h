@@ -4,12 +4,12 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
-#include <Engine.h>
 #include <Logging/Logger.h>
-#include "Pipeline/GraphicsPipeline.h"
 
 #include <vector>
 #include <iostream>
+
+#include "Image/Image.h"
 
 namespace VkSetup {
   void createVulkanInstance();

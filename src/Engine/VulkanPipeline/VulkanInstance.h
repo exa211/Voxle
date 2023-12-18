@@ -3,6 +3,8 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 
+#include "GraphicsPipeline.h"
+
 #include "Buffer/Buffer.h"
 #include "Image/Image.h"
 
@@ -33,6 +35,8 @@ struct VulkanInstance {
   VkQueue graphicsQueue{};
   VkQueue presentQueue{};
 
+  int currentFrame{0};
+
   // SwapChain Images
   VkSwapchainKHR swapChain;
   //std::vector<VulkanImage::InternalImage> swapChainImages;
@@ -49,9 +53,8 @@ struct VulkanInstance {
   VkExtent2D extent{};
   VkFormat format;
 
-  VkPipeline pipeline;
-  VkPipelineLayout pipelineLayout;
   VkRenderPass renderPass;
+  VulkanPipeline::Pipeline globalPipeline{"global"};
 
   VkCommandPool commandPool;
   std::vector<VkCommandBuffer> commandBuffers;

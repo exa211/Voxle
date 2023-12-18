@@ -8,12 +8,14 @@
 #include <VulkanPipeline/VulkanInstance.h>
 #include <glm/glm.hpp>
 
+#include <Threading/ThreadPool.hpp>
+
 #include <string>
 #include <thread>
 
 class EngineData {
 public:
-    const std::string ver = "1.0.0";
+    const std::string ver = "Voxle - 0.1";
 
     std::string title;
     int w_frameBuffer, h_frameBuffer;
@@ -25,8 +27,7 @@ public:
 
     GLFWwindow *window;
 
-    std::thread logicThread;
-    std::thread renderThread;
+    ThreadPool threadPool{};
 
     static EngineData *i() {
       static EngineData instance{};

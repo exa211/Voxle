@@ -3,13 +3,10 @@
 #include <map>
 
 struct Material {
-  std::string Namespace{"default"};
-
-  void setType(const Material& mat) {
-    Namespace = mat.Namespace;
-  }
+   uint32_t id{0};
 };
 
 namespace Materials {
-  const Material AIR = Material{"voxle:air"};
+  const Material AIR = Material{0};
+  const Material SOLID = Material{1};
 }

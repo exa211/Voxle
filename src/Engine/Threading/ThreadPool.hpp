@@ -17,19 +17,20 @@ namespace VulkanThread {
     VkCommandPool cmdPool;
     VkCommandBuffer cmdBuffer;
   };
+
 }
 
 class ThreadPool {
 public:
   void start(uint32_t threadOverride);
-  void add(const std::function<void()>& function);
-  void stop();
-  bool working();
+  void addJob(const std::function<void()>& function);
 private:
   void ThreadLoop();
   bool shouldTerminate = false;
+
   std::mutex mainMutex;
   std::condition_variable mainMutexCondition;
-  std::vector<std::thread> threads;
+
+  std::vector<std::unique_ptr<std::thread>> threads;
   std::queue<std::function<void()>> functionsQueued;
 };

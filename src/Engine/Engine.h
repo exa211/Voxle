@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 
 #include <Threading/ThreadPool.hpp>
+#include <World/ChunkHandler.hpp>
 
 #include <string>
 #include <thread>
@@ -28,6 +29,8 @@ public:
     GLFWwindow *window;
 
     ThreadPool threadPool{};
+
+    ChunkHandler chunkHandler{};
 
     static EngineData *i() {
       static EngineData instance{};

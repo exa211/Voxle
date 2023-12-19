@@ -165,9 +165,9 @@ namespace UI {
 
     ImGui::Text(camPosStr.c_str());
 
-    int x = (int) (cam.position.x + CHUNK_SIZE) / CHUNK_SIZE;
-    int y = (int) (cam.position.y + CHUNK_SIZE) / CHUNK_SIZE;
-    int z = (int) (cam.position.z + CHUNK_SIZE) / CHUNK_SIZE;
+    int x = (int) (cam.position.x) / CHUNK_SIZE;
+    int y = (int) (cam.position.y) / CHUNK_SIZE;
+    int z = (int) (cam.position.z) / CHUNK_SIZE;
 
     std::string camChunkPos;
     camChunkPos.append(std::to_string(x) + ", ");

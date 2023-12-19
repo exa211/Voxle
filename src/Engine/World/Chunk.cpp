@@ -1,6 +1,10 @@
 #include "Chunk.hpp"
 
+#include <functional>
+
 #include <glm/gtc/packing.hpp>
+
+#include <Engine.h>
 
 unsigned int faceIndices[] = {
   0, 1, 2,
@@ -90,23 +94,25 @@ void Chunk::setChunkGenerated(bool generated) {
 }
 
 void Chunk::generate(std::vector<float>& noise) {
-  int index{0};
 
-  for (int z = 0; z < CHUNK_SIZE; ++z) {
-    for (int y = 0; y < CHUNK_SIZE; ++y) {
-      for (int x = 0; x < CHUNK_SIZE; ++x) {
-        float val = noise[index++];
+  // Queue a job for a random thread
+  int index{};
 
-        if (val >= 0.92f) {
+  for (int z = 0; z < CHUNK_SIZE; z++) {
+    for (int y = 0; y < CHUNK_SIZE; y++) {
+      for (int x = 0; x < CHUNK_SIZE; x++) {
+        float nVal = noise[index++];
+        if (nVal >= 0.97f) {
           blocks.push_back(Materials::AIR);
           continue;
         }
-
-        if(bEmpty) bEmpty = false; // <- If we found a single solid block set the chunk to be not empty
+        bEmpty = false;
         blocks.push_back(Materials::SOLID);
       }
     }
   }
+
+  regenerateMesh();
 }
 
 void Chunk::regenerateMesh() {
@@ -131,14 +137,14 @@ void Chunk::regenerateMesh() {
         Material blockTop = getBlockUnsafe(x, y + 1, z);
         Material blockBot = getBlockUnsafe(x, y - 1, z);
 
-        glm::ivec3 pos{x, y, z};
+        glm::ivec3 vpos{x, y, z};
 
         // Front face
         if (z == CHUNK_SIZE - 1 || blockFront.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = frontFace[vertIndex++] + pos.x;
-            unsigned int vertY = frontFace[vertIndex++] + pos.y;
-            unsigned int vertZ = frontFace[vertIndex++] + pos.z;
+            unsigned int vertX = frontFace[vertIndex++] + vpos.x;
+            unsigned int vertY = frontFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = frontFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -152,9 +158,9 @@ void Chunk::regenerateMesh() {
         // Back face
         if (z == 0 || blockBack.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = backFace[vertIndex++] + pos.x;
-            unsigned int vertY = backFace[vertIndex++] + pos.y;
-            unsigned int vertZ = backFace[vertIndex++] + pos.z;
+            unsigned int vertX = backFace[vertIndex++] + vpos.x;
+            unsigned int vertY = backFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = backFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -168,9 +174,9 @@ void Chunk::regenerateMesh() {
         // Right face
         if (x == CHUNK_SIZE - 1 || blockRight.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = rightFace[vertIndex++] + pos.x;
-            unsigned int vertY = rightFace[vertIndex++] + pos.y;
-            unsigned int vertZ = rightFace[vertIndex++] + pos.z;
+            unsigned int vertX = rightFace[vertIndex++] + vpos.x;
+            unsigned int vertY = rightFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = rightFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -184,9 +190,9 @@ void Chunk::regenerateMesh() {
         // Left face
         if (x == 0 || blockLeft.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = leftFace[vertIndex++] + pos.x;
-            unsigned int vertY = leftFace[vertIndex++] + pos.y;
-            unsigned int vertZ = leftFace[vertIndex++] + pos.z;
+            unsigned int vertX = leftFace[vertIndex++] + vpos.x;
+            unsigned int vertY = leftFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = leftFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -200,9 +206,9 @@ void Chunk::regenerateMesh() {
         // Top face
         if (y == CHUNK_SIZE - 1 || blockTop.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = topFace[vertIndex++] + pos.x;
-            unsigned int vertY = topFace[vertIndex++] + pos.y;
-            unsigned int vertZ = topFace[vertIndex++] + pos.z;
+            unsigned int vertX = topFace[vertIndex++] + vpos.x;
+            unsigned int vertY = topFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = topFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -216,9 +222,9 @@ void Chunk::regenerateMesh() {
         // Bot face
         if (y == 0 || blockBot.id == 0) {
           for (int i = 0; i < 4; i++) {
-            unsigned int vertX = botFace[vertIndex++] + pos.x;
-            unsigned int vertY = botFace[vertIndex++] + pos.y;
-            unsigned int vertZ = botFace[vertIndex++] + pos.z;
+            unsigned int vertX = botFace[vertIndex++] + vpos.x;
+            unsigned int vertY = botFace[vertIndex++] + vpos.y;
+            unsigned int vertZ = botFace[vertIndex++] + vpos.z;
             unsigned int vert = glm::packInt4x8({vertX, vertY, vertZ, i});
             chunkMesh.vertices.emplace_back(BlockVertex{vert});
           }
@@ -239,4 +245,8 @@ void Chunk::regenerateMesh() {
   mesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunkMesh.vertices);
   mesh.indexBuffer = Buffers::createIndexBuffer(chunkMesh.indices);
   mesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE, pos.z * CHUNK_SIZE});
+}
+
+std::deque<Material> &Chunk::getBlocks() {
+  return this->blocks;
 }

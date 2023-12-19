@@ -6,9 +6,16 @@
 
 class ChunkHandler {
 public:
-  void loadChunk(int x, int y, int z);
-  Chunk& getChunk(int x, int y, int z);
+  void generateChunk(int x, int y, int z);
+  Chunk* getChunk(int x, int y, int z);
+
+  std::vector<glm::ivec3>& getChunksGenerating();
+
+  std::vector<Chunk*> getChunksGenerated();
+  std::vector<Chunk*> getChunksLoaded();
 private:
-  std::vector<Chunk> chunksGenerated;
-  std::vector<Chunk> chunksLoaded;
+  std::vector<glm::ivec3> chunkGenerating;
+
+  std::vector<Chunk*> chunksGenerated;
+  std::vector<Chunk*> chunksLoaded;
 };

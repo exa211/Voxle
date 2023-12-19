@@ -21,6 +21,8 @@ const std::vector<const char *> deviceExtensions = {
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 struct VulkanInstance {
+  int currentShader = 0;
+
   VkInstance vkInstance;
 
   VmaAllocator vmaAllocator{};
@@ -55,6 +57,7 @@ struct VulkanInstance {
 
   VkRenderPass renderPass;
   VulkanPipeline::Pipeline globalPipeline{"global"};
+  VulkanPipeline::Pipeline foliagePipeline{"foliage"};
 
   VkCommandPool commandPool;
   std::vector<VkCommandBuffer> commandBuffers;

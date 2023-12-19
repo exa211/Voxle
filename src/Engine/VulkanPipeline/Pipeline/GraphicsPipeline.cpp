@@ -139,7 +139,14 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
 
   // Bind the Pipeline to the commandBuffer
   // Don't need to bind this for every single mesh
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, EngineData::i()->vkInstWrapper.globalPipeline.getPipeline());
+
+  VulkanPipeline::Pipeline currentPipeline = EngineData::i()->vkInstWrapper.globalPipeline;
+
+  if(EngineData::i()->vkInstWrapper.currentShader == 1) {
+    currentPipeline = EngineData::i()->vkInstWrapper.foliagePipeline;
+  }
+
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, currentPipeline.getPipeline());
 
   for (Mesh &m: SceneManager::i()->curScene.meshesInScene) {
 
@@ -151,7 +158,7 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
     constant.transformMatrix = proj * view * model;
     constant.data = color;
     // Push minimal transformation data to shader
-    vkCmdPushConstants(commandBuffer, EngineData::i()->vkInstWrapper.globalPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+    vkCmdPushConstants(commandBuffer, currentPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(MeshPushConstant), &constant);
 
     // Bind the mesh if it's not the same
@@ -159,13 +166,14 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
 
       VkDeviceSize offsets = 0;
       // Bind VBO
+      if(m.vertexBuffer.buffer == VK_NULL_HANDLE) continue;
       vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m.vertexBuffer.buffer, &offsets);
       // Bind IBO
       vkCmdBindIndexBuffer(commandBuffer, m.indexBuffer.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
       lastRenderedMesh = &m;
     }
     // Bind UBO
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vki.globalPipeline.getPipelineLayout(), 0, 1,
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, currentPipeline.getPipelineLayout(), 0, 1,
                             vki.descriptorSets.data(), 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, m.indexBuffer.indicesSize, 1, 0, 0, 0);

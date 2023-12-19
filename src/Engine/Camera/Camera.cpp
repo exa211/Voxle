@@ -60,7 +60,7 @@ void Camera::update(GLFWwindow* window, float& deltaTime) {
 
     long ori = abs(glm::angle(newOrientation, up) - glm::radians(90.0f));
 
-    // Pitch clamping
+    // Rotation clamping | Somehow glitchy
     if(ori <= glm::radians(90.0f)) {
       direction = newOrientation;
     }

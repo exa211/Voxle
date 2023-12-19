@@ -7,7 +7,7 @@
 #include "FastNoise/SmartNode.h"
 #include "Renderer/Mesh/Mesh.h"
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 32
 
 struct ChunkMesh {
   std::vector<BlockVertex> vertices{};
@@ -32,6 +32,8 @@ public:
 
   Material getBlockUnsafe(int x, int y, int z);
   Material& getBlock(int xSafe, int ySafe, int zSafe);
+
+  std::deque<Material>& getBlocks();
 
   ChunkMesh& getChunkMesh();
 

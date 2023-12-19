@@ -25,10 +25,17 @@ static void callback_glfwMousePosition(GLFWwindow *window, double x, double y) {
   EngineData::i()->cursorPos = glm::vec2(x / W_WIDTH, y / W_HEIGHT);
 }
 
-static void callback_glfwKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  if(key == GLFW_KEY_H && action == GLFW_PRESS) {
+static void callback_glfwKey(GLFWwindow *window, int key, int scancode, int action, int mods) {
+  if (key == GLFW_KEY_H && action == GLFW_PRESS) {
     LOG(I, "pressed key h");
-    //TODO: Implement DebugPipeline
+
+    int &currentShader = EngineData::i()->vkInstWrapper.currentShader;
+
+    if (currentShader == 0) {
+      currentShader = 1;
+    } else {
+      currentShader = 0;
+    }
   }
 }
 
@@ -114,15 +121,25 @@ void Voxelate::initVulkan() {
   // TODO: Abstraction
   RenderPass::create();
 
-  // Test OOP Pipeline
-  VulkanPipeline::Pipeline debugPipeline{"test"};
-  debugPipeline.bindShader("shader");
+  // Global Shader Pipeline / UBER Shader
+  VulkanPipeline::Pipeline globalPipeline{"global"};
+  globalPipeline.bindShader("shader");
+  globalPipeline.setVertexDescriptions(BlockVertex::getBindingDescription(), BlockVertex::getAttributeDescriptions());
+  globalPipeline.setDescriptorLayout(descriptorLayout);
+  globalPipeline.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
+  globalPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
+  globalPipeline.build();
+  EngineData::i()->vkInstWrapper.globalPipeline = globalPipeline;
+
+  // Debug Pipeline
+  VulkanPipeline::Pipeline debugPipeline{"debug"};
+  debugPipeline.bindShader("wireframe");
   debugPipeline.setVertexDescriptions(BlockVertex::getBindingDescription(), BlockVertex::getAttributeDescriptions());
   debugPipeline.setDescriptorLayout(descriptorLayout);
   debugPipeline.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
-  debugPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
+  debugPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
   debugPipeline.build();
-  EngineData::i()->vkInstWrapper.globalPipeline = debugPipeline;
+  EngineData::i()->vkInstWrapper.foliagePipeline = debugPipeline;
 
   VulkanPipeline::createFramebuffers();
 
@@ -131,44 +148,26 @@ void Voxelate::initVulkan() {
   VulkanPipeline::createSyncObjects();
 }
 
-// !!! CHUNK MULTITHREADING HIGHLY WIP !!!
-std::vector<Chunk> chunksGenerated;
-const int size = 2;
-
-// TODO: At the moment this is not mutexed and will do undefined behaviour!
-void generateChunks() {
-  FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree("EADNzCxAGQATAClcDz4NAAQAAADNzCxAGQAJAAEAAAAAgD8A7FG4PQCF6zlBAQQAAAAAAFK4zkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtejPQ==");
-  for(int x = -size; x < size; x++) {
-    for(int y = -size; y < size; y++) {
-      for(int z = -size; z < size; z++) {
-        std::vector<float> noise(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
-        fnGenerator->GenUniformGrid3D(noise.data(), z * CHUNK_SIZE, y * CHUNK_SIZE, x * CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, 0.01f, 69);
-        Chunk chunk{x, y, z};
-        chunk.generate(noise);
-        if(chunk.isChunkEmpty()) continue; // <- If chunk generated empty
-        chunk.regenerateMesh();
-
-        chunk.setChunkGenerated(true);
-        chunksGenerated.push_back(chunk);
-      }
-    }
-  }
-}
-
 // Initializes the scene
 void Voxelate::initScene() {
   Scene mainScene{};
 
   LOG(I, "FAST NOISE: Supported SIMD Level: " + std::to_string(FastNoise::SUPPORTED_SIMD_LEVELS));
 
-  // Create a separate thread and detach from main thread so rendering doesn't get blocked
-  std::thread chunkBuilder(generateChunks);
-  chunkBuilder.detach();
-
   LOG(D, "Settings scenes");
 
   SceneManager::i()->curScene = mainScene;
   SceneManager::i()->scenesLoaded.push_back(mainScene);
+
+  const int size = 3;
+  for (int x = -size; x < size; x++) {
+    for (int y = -size; y < size; y++) {
+      for (int z = -size; z < size; z++) {
+        EngineData::i()->chunkHandler.generateChunk(x, y, z);
+      }
+    }
+  }
+
 }
 
 void Voxelate::initGui() {
@@ -179,22 +178,46 @@ void Voxelate::initGui() {
 void Voxelate::update(float deltaTime) {
   cam.update(EngineData::i()->window, deltaTime);
 
-  int x = (int) (cam.position.x - CHUNK_SIZE) / CHUNK_SIZE;
-  int y = (int) (cam.position.y - CHUNK_SIZE) / CHUNK_SIZE;
-  int z = (int) (cam.position.z - CHUNK_SIZE) / CHUNK_SIZE;
+  int x = (int) (cam.position.x) / CHUNK_SIZE;
+  int y = (int) ((cam.position.y) / CHUNK_SIZE) - 1;
+  int z = (int) (cam.position.z) / CHUNK_SIZE;
 
-  // !!! UPDATE CHUNKS HIGHLY WIP !!!
-  // TODO: Restructure this
-  for(Chunk& chunk : chunksGenerated) {
-    glm::ivec3* chunkPos = chunk.getPos();
-//    if(chunkPos->x == x && chunkPos->y == y && chunkPos->z == z && !chunk.isLoaded()) {
-//      chunk.setChunkLoaded(true);
-//      SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
-//    }
-    if(chunk.isLoaded()) continue;
-    chunk.setChunkLoaded(true);
-    SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
+  ChunkHandler &rChunkHandler = EngineData::i()->chunkHandler;
+
+  if (rChunkHandler.getChunk(x, y, z) == nullptr) {
+    glm::ivec3 newPos{x, y, z};
+
+    // Return if we are already generating this chunk
+    if (std::find(rChunkHandler.getChunksGenerating().begin(),
+                  rChunkHandler.getChunksGenerating().end(), newPos) !=
+                  rChunkHandler.getChunksGenerating().end()) {
+      return;
+    }
+
+    rChunkHandler.getChunksGenerating().push_back(newPos); // <- Insert new chunk pos that is generating
+    rChunkHandler.generateChunk(x, y, z); // <- Enqueue chunk generation on thread-pool
+
   }
+
+  for (Chunk *chunk: rChunkHandler.getChunksGenerated()) {
+    if (chunk->isLoaded()) continue;
+    chunk->setChunkLoaded(true);
+    SceneManager::i()->curScene.meshesInScene.push_back(chunk->getChunkMesh().mesh);
+  }
+
+
+//  // !!! UPDATE CHUNKS HIGHLY WIP !!!
+//  // TODO: Restructure this
+//  for (Chunk &chunk: chunksGenerated) {
+//    glm::ivec3 *chunkPos = chunk.getPos();
+////    if(chunkPos->x == x && chunkPos->y == y && chunkPos->z == z && !chunk.isLoaded()) {
+////      chunk.setChunkLoaded(true);
+////      SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
+////    }
+//    if (chunk.isLoaded()) continue;
+//    chunk.setChunkLoaded(true);
+//    SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
+//  }
 
 }
 
@@ -271,7 +294,7 @@ void Voxelate::clean() {
 
   vkDestroyDevice(device, nullptr);
 
-  if(enableValidation) {
+  if (enableValidation) {
     VulkanDebug::destroyDebugUtilsMessengerEXT(vki.vkInstance, vki.debugMessenger, nullptr);
   }
 

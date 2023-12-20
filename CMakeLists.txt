@@ -101,5 +101,5 @@ add_executable(Voxle
         src/Engine/Util/Util.cpp
         src/Engine/Util/Util.hpp)
 
-target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise GPUOpen::VulkanMemoryAllocator tbb)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64 -DVOXLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

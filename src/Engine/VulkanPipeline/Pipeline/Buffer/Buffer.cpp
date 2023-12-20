@@ -85,7 +85,6 @@ Buffers::VmaBuffer Buffers::createBlockVertexBuffer(const std::vector<BlockVerte
 }
 
 Buffers::IndexBuffer Buffers::createIndexBuffer(const std::vector<uint32_t> &indices) {
-  VkDevice &device = EngineData::i()->vkInstWrapper.device;
   VmaAllocator &allocator = EngineData::i()->vkInstWrapper.vmaAllocator;
 
   VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();

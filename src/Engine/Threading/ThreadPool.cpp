@@ -21,7 +21,6 @@ void ThreadPool::ThreadLoop() {
       functionsQueued.pop();
     }
     // Call function pointer
-    LOG(D, "Thread executing job");
     currentJob();
 
   }

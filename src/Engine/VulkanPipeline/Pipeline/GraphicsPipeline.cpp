@@ -5,6 +5,7 @@
 #include "Scene/SceneManager.h"
 
 #include "Engine.h"
+#include "Util/ColorUtil.hpp"
 
 void VulkanPipeline::createFramebuffers() {
   std::vector<VkFramebuffer> buffers = EngineData::i()->vkInstWrapper.swapChainFramebuffers;
@@ -108,7 +109,8 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
   renderPassInfo.renderArea.extent = EngineData::i()->vkInstWrapper.extent;
 
   std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color = {{0.2f, 0.2f, 0.2f}};
+  glm::vec3 cColor = ColorUtil::convertRGBtoFloat({169, 196, 201});
+  clearValues[0].color = {{cColor.x, cColor.y, cColor.z}};
   clearValues[1].depthStencil = {1.0f, 0};
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
   renderPassInfo.pClearValues = clearValues.data();

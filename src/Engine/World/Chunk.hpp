@@ -7,7 +7,10 @@
 #include "FastNoise/SmartNode.h"
 #include "Renderer/Mesh/Mesh.h"
 
-#define CHUNK_SIZE 32
+#define CSM 62
+inline const int CHUNK_SIZE = 32;
+#define CHUNK_SIZE_2 CHUNK_SIZE * CHUNK_SIZE
+#define CHUNK_VOLUME CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE
 
 struct ChunkMesh {
   std::vector<BlockVertex> vertices{};
@@ -30,20 +33,21 @@ public:
 
   [[nodiscard]] glm::ivec3* getPos();
 
-  Material getBlockUnsafe(int x, int y, int z);
+  Material* getBlockUnsafe(int x, int y, int z);
   Material& getBlock(int xSafe, int ySafe, int zSafe);
 
   std::deque<Material>& getBlocks();
 
   ChunkMesh& getChunkMesh();
 
-  void generate(std::vector<float>& noise);
+  bool generate(std::vector<float>& noise);
   void regenerateMesh();
 
 private:
   glm::ivec3 pos{}; // Chunk pos normalized
 
   std::deque<Material> blocks{};
+
   ChunkMesh chunkMesh{};
   bool bGenerated = false;
   bool bEmpty = true;

@@ -7,7 +7,7 @@ class Camera {
 public:
   Camera(int width, int height) : width(width), height(height) {}
 
-  glm::vec3 position{20.0f, 20.0f, 60.0f};
+  glm::vec3 position{0.0f};
   glm::vec3 direction{0.0, 0.0, -1.0};
   glm::vec3 up{0.0, 1.0, 0.0};
 

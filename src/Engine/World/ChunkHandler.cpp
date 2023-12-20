@@ -4,7 +4,7 @@
 #include <FastNoise/FastNoise.h>
 
 const FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree(
-  "EADNzCxAGQATAClcDz4NAAQAAADNzCxAGQAJAAEAAAAAgD8A7FG4PQCF6zlBAQQAAAAAAFK4zkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtejPQ==");
+  "DQADAAAApHB9QBAAFK5nQBkAEwApXA8+DQAEAAAAzcwsQBkACQABAAAAAIA/AOxRuD0Ahes5QQEEAAAAAABSuM5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI/Cdb0Aj8J1PgB7FC4/");
 
 void ChunkHandler::generateChunk(int x, int y, int z) {
   glm::ivec3 chunkPos{x, y, z};
@@ -20,10 +20,16 @@ void ChunkHandler::generateChunk(int x, int y, int z) {
                                   pChunk->getPos()->x * CHUNK_SIZE, CHUNK_SIZE,
                                   CHUNK_SIZE, CHUNK_SIZE, 0.03f, 69);
 
-    pChunk->generate(noise);
+    // This is really weird IDK...
+    // Basically this checks if the chunk would generate in pre-pass
+    // But if it doesn't pass we need to set it anyway but in generate it needs to return to abort the thread and meshing??
+    if(pChunk->generate(noise)) {
+      pChunk->setChunkGenerated(true);
+      chunksGenerated.push_back(pChunk); // <- TODO: This could crash sometime in the future?
+      return;
+    }
     pChunk->setChunkGenerated(true);
     chunksGenerated.push_back(pChunk); // <- TODO: This could crash sometime in the future?
-    LOG(W, std::this_thread::get_id());
   });
 
 }
@@ -49,5 +55,5 @@ std::vector<Chunk *> ChunkHandler::getChunksLoaded() {
 }
 
 std::vector<glm::ivec3> &ChunkHandler::getChunksGenerating() {
-  return this->chunkGenerating;
+  return this->chunksGenerating;
 }

@@ -14,7 +14,7 @@ public:
   std::vector<Chunk*> getChunksGenerated();
   std::vector<Chunk*> getChunksLoaded();
 private:
-  std::vector<glm::ivec3> chunkGenerating;
+  std::vector<glm::ivec3> chunksGenerating;
 
   std::vector<Chunk*> chunksGenerated;
   std::vector<Chunk*> chunksLoaded;

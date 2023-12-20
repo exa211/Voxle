@@ -26,15 +26,22 @@ vec2 texCoord[4] = vec2[4](
 );
 
 void main() {
+    float z = float(packedVertData & 0x3Fu);
+    float y = float((packedVertData & 0xFC0u) >> 6u);
+    float x = float((packedVertData & 0x3F000u) >> 12u);
+
     // Reversed little endian order
     // Needs fixing i guess? But im really bad at shifting bits.
-    uint z = packedVertData & 255u;
-    uint y = packedVertData / 256 & 255u;
-    uint x = packedVertData / (256*256) & 255u;
-    uint w = packedVertData / (256*256*256) & 255u;
+//    uint z = packedVertData & 255u;
+//    uint y = packedVertData / 256 & 255u;
+//    uint x = packedVertData / (256*256) & 255u;
+//    uint w = packedVertData / (256*256*256) & 255u;
+
+    uint index = (packedVertData & 0x600000u) >> 21u;
+    uint layer = (packedVertData & 0xFF800000u) >> 23u;
 
     gl_Position = PushConstants.transform * vec4(x, y, z, 1.0);
 
     // Out texture UV's and Array Depth
-    texCoord_Layer = vec3(texCoord[w], 1);
+    texCoord_Layer = vec3(texCoord[index], 1);
 }

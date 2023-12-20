@@ -1,7 +1,4 @@
 #include "VulkanDebug.h"
-#include "Logging/Logger.h"
-
-#include <iostream>
 
 #include <vulkan/vulkan.h>
 

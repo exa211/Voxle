@@ -14,6 +14,7 @@
 #include "Voxelate.h"
 
 #include "World/Chunk.hpp"
+#include "Util/Util.hpp"
 
 #include <array>
 
@@ -165,17 +166,12 @@ namespace UI {
 
     ImGui::Text(camPosStr.c_str());
 
-    int x = (int) (cam.position.x) / CHUNK_SIZE;
-    int y = (int) (cam.position.y) / CHUNK_SIZE;
-    int z = (int) (cam.position.z) / CHUNK_SIZE;
+    int x = cam.position.x / CHUNK_SIZE;
+    int y = cam.position.y / CHUNK_SIZE;
+    int z = cam.position.z / CHUNK_SIZE;
 
-    std::string camChunkPos;
-    camChunkPos.append(std::to_string(x) + ", ");
-    camChunkPos.append(std::to_string(y) + ", ");
-    camChunkPos.append(std::to_string(z) + ", ");
-
-
-    ImGui::Text(camChunkPos.c_str());
+    ImGui::NewLine();
+    ImGui::Text(Util::stringFromIVec3({x, y, z}).c_str());
 
     ImGui::End();
 

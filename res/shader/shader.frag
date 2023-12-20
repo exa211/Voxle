@@ -10,5 +10,13 @@ layout(location = 0) out vec4 outColor;
 void main() {
     vec4 texCol = texture(texSampler, texCoord_Layer.xy);
     if(texCol.a == 0) discard; // Discard pixel if no alpha
-    outColor = texCol;
+
+    float brightness = 1.0f;
+
+    float r = pow(texCol.r, brightness);
+    float g = pow(texCol.g, brightness);
+    float b = pow(texCol.b, brightness);
+
+    //outColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    outColor = vec4(r, g, b, 1.0f);
 }

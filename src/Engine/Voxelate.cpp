@@ -5,6 +5,7 @@
 
 #include "VulkanPipeline/Pipeline/RenderPass.h"
 #include "VulkanPipeline/Pipeline/Commandbuffer.h"
+#include "Util/Util.hpp"
 
 #include <FastNoise/FastNoise.h>
 
@@ -16,6 +17,9 @@
 #include <World/Chunk.hpp>
 
 #include <Scene/SceneManager.h>
+
+#include <cmath>
+#include <execution>
 
 static void callback_glfwWindowResized(GLFWwindow *window, int w, int h) {
   EngineData::i()->vkInstWrapper.framebufferWasResized = true;
@@ -42,7 +46,7 @@ static void callback_glfwKey(GLFWwindow *window, int key, int scancode, int acti
 void Voxelate::run() {
   initWindow();
 
-  EngineData::i()->threadPool.start(2);
+  EngineData::i()->threadPool.start(8);
 
   initVulkan();
 
@@ -107,7 +111,7 @@ void Voxelate::initVulkan() {
 
   // TODO: Cache textures in map or something else so we can delete these after and free memory
   VulkanImage::Image texture{};
-  Resources::createTexture(texture, "stone.png");
+  Resources::createTexture(texture, "cobblestone.png");
 
   // Descriptors
   VkDescriptorSetLayout descriptorLayout = VkSetup::createDescriptorSetLayout();
@@ -156,17 +160,9 @@ void Voxelate::initScene() {
 
   LOG(D, "Settings scenes");
 
+
   SceneManager::i()->curScene = mainScene;
   SceneManager::i()->scenesLoaded.push_back(mainScene);
-
-  const int size = 3;
-  for (int x = -size; x < size; x++) {
-    for (int y = -size; y < size; y++) {
-      for (int z = -size; z < size; z++) {
-        EngineData::i()->chunkHandler.generateChunk(x, y, z);
-      }
-    }
-  }
 
 }
 
@@ -175,49 +171,74 @@ void Voxelate::initGui() {
   UI::initUserInterface();
 }
 
+int renderDistance = 5;
+int renderDistanceY = 1;
+
 void Voxelate::update(float deltaTime) {
   cam.update(EngineData::i()->window, deltaTime);
 
-  int x = (int) (cam.position.x) / CHUNK_SIZE;
-  int y = (int) ((cam.position.y) / CHUNK_SIZE) - 1;
-  int z = (int) (cam.position.z) / CHUNK_SIZE;
-
   ChunkHandler &rChunkHandler = EngineData::i()->chunkHandler;
 
-  if (rChunkHandler.getChunk(x, y, z) == nullptr) {
-    glm::ivec3 newPos{x, y, z};
+  int x = cam.position.x / CHUNK_SIZE;
+  int y = cam.position.y / CHUNK_SIZE;
+  int z = cam.position.z / CHUNK_SIZE;
 
-    // Return if we are already generating this chunk
-    if (std::find(rChunkHandler.getChunksGenerating().begin(),
-                  rChunkHandler.getChunksGenerating().end(), newPos) !=
-                  rChunkHandler.getChunksGenerating().end()) {
-      return;
+  for(int lx = -renderDistance + x; lx < renderDistance + x; lx++) {
+    for(int ly = -renderDistanceY + y; ly < renderDistanceY + y; ly++) {
+      for(int lz = -renderDistance + z; lz < renderDistance + z; lz++) {
+
+        if(rChunkHandler.getChunk(lx, ly, lz) == nullptr) {
+          glm::ivec3 pos{lx, ly, lz};
+
+          // If we found a chunk in the currently generating list
+          if (std::find(rChunkHandler.getChunksGenerating().begin(), rChunkHandler.getChunksGenerating().end(), pos)
+          != rChunkHandler.getChunksGenerating().end())
+            continue;
+
+          //LOG(D, "load chunk at: " + Util::stringFromIVec3(chunkPos));
+
+          rChunkHandler.getChunksGenerating().push_back(pos);
+          rChunkHandler.generateChunk(pos.x, pos.y, pos.z);
+        }
+      }
     }
-
-    rChunkHandler.getChunksGenerating().push_back(newPos); // <- Insert new chunk pos that is generating
-    rChunkHandler.generateChunk(x, y, z); // <- Enqueue chunk generation on thread-pool
-
   }
+
+
+
+
+
+
+//  if (rChunkHandler.getChunk(x, y, z) == nullptr) {
+//    glm::ivec3 newPos{x, y, z};
+//
+//    // Return if we are already generating this chunk
+//    if (std::find(rChunkHandler.getChunksGenerating().begin(),
+//                  rChunkHandler.getChunksGenerating().end(), newPos) !=
+//                  rChunkHandler.getChunksGenerating().end()) {
+//      return;
+//    }
+//
+//    rChunkHandler.getChunksGenerating().push_back(newPos); // <- Insert new chunk pos that is generating
+//    rChunkHandler.generateChunk(x, y, z); // <- Enqueue chunk generation on thread-pool
+//
+//  }
 
   for (Chunk *chunk: rChunkHandler.getChunksGenerated()) {
     if (chunk->isLoaded()) continue;
+    if(chunk->isChunkEmpty()) continue;
+
     chunk->setChunkLoaded(true);
+
+    // Face Construction done -> create buffers in mesh struct
+
+    Mesh& mesh = chunk->getChunkMesh().mesh;
+    mesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunk->getChunkMesh().vertices);
+    mesh.indexBuffer = Buffers::createIndexBuffer(chunk->getChunkMesh().indices);
+    mesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {chunk->getPos()->x * CHUNK_SIZE, chunk->getPos()->y * CHUNK_SIZE, chunk->getPos()->z * CHUNK_SIZE});
+
     SceneManager::i()->curScene.meshesInScene.push_back(chunk->getChunkMesh().mesh);
   }
-
-
-//  // !!! UPDATE CHUNKS HIGHLY WIP !!!
-//  // TODO: Restructure this
-//  for (Chunk &chunk: chunksGenerated) {
-//    glm::ivec3 *chunkPos = chunk.getPos();
-////    if(chunkPos->x == x && chunkPos->y == y && chunkPos->z == z && !chunk.isLoaded()) {
-////      chunk.setChunkLoaded(true);
-////      SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
-////    }
-//    if (chunk.isLoaded()) continue;
-//    chunk.setChunkLoaded(true);
-//    SceneManager::i()->curScene.meshesInScene.push_back(chunk.getChunkMesh().mesh);
-//  }
 
 }
 

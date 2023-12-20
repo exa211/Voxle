@@ -10,5 +10,7 @@ public:
   Buffers::IndexBuffer indexBuffer{};
   MeshPushConstant meshRenderData{};
 
+  size_t vertexCount{0};
+
   void destroy();
 };

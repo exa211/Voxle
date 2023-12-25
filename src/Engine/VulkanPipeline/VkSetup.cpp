@@ -297,6 +297,7 @@ void VkSetup::createSwapchain(bool isResize) {
   EngineData::i()->vkInstWrapper.extent = extent;
   EngineData::i()->vkInstWrapper.format = surfaceFormat.format;
   EngineData::i()->vkInstWrapper.swapChain = swapChain;
+
   if (!isResize) LOG(I, "Set VkExtent2D and VkFormat in VulkanInstance");
 }
 

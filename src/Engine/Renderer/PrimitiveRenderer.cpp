@@ -19,11 +19,13 @@ void PrimitiveRenderer::render(Camera& cam) {
   uint32_t imageIndex;
 
   // Acquire next image from swapchain and Signal the Semaphore to block
-  VkResult ifErr = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageSema, VK_NULL_HANDLE, &imageIndex);
-  if(ifErr == VK_ERROR_OUT_OF_DATE_KHR) {
+  VkResult scRes = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageSema, VK_NULL_HANDLE, &imageIndex);
+  // Check for new window size
+  if(scRes == VK_ERROR_OUT_OF_DATE_KHR || scRes == VK_SUBOPTIMAL_KHR || EngineData::i()->vkInstWrapper.framebufferWasResized) {
+    EngineData::i()->vkInstWrapper.framebufferWasResized = false;
     VkSetup::recreateSwapchain(device);
     return;
-  } else if(ifErr != VK_SUCCESS && ifErr != VK_SUBOPTIMAL_KHR) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
+  } else if(scRes != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage");
 
   vkResetFences(device, 1, &fence);
 
@@ -66,12 +68,12 @@ void PrimitiveRenderer::render(Camera& cam) {
   presentInfo.pResults = nullptr;
 
   // Present the next image to the window
-  ifErr = vkQueuePresentKHR(EngineData::i()->vkInstWrapper.presentQueue, &presentInfo);
-  if(ifErr == VK_ERROR_OUT_OF_DATE_KHR || ifErr == VK_SUBOPTIMAL_KHR || EngineData::i()->vkInstWrapper.framebufferWasResized) {
+  scRes = vkQueuePresentKHR(EngineData::i()->vkInstWrapper.presentQueue, &presentInfo);
+  if(scRes == VK_ERROR_OUT_OF_DATE_KHR || scRes == VK_SUBOPTIMAL_KHR || EngineData::i()->vkInstWrapper.framebufferWasResized) {
     EngineData::i()->vkInstWrapper.framebufferWasResized = false;
     VkSetup::recreateSwapchain(device);
     return;
-  } else if(ifErr != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
+  } else if(scRes != VK_SUCCESS) LOG(F, "Could not acquire VkSwapChainImage in Render[PrimitiveRenderer]");
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

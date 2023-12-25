@@ -56,8 +56,11 @@ struct VulkanInstance {
   VkFormat format;
 
   VkRenderPass renderPass;
-  VulkanPipeline::Pipeline globalPipeline{"global"};
-  VulkanPipeline::Pipeline foliagePipeline{"foliage"};
+  VulkanPipeline::Pipeline globalPipeline{};
+  VulkanPipeline::Pipeline debugPipeline{};
+  VulkanPipeline::Pipeline chunkWireframe{};
+
+  std::unordered_map<std::string, VulkanPipeline::Pipeline> pipelines;
 
   VkCommandPool commandPool;
   std::vector<VkCommandBuffer> commandBuffers;

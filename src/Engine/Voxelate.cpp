@@ -5,23 +5,19 @@
 
 #include "VulkanPipeline/Pipeline/RenderPass.h"
 #include "VulkanPipeline/Pipeline/Commandbuffer.h"
-#include "Util/Util.hpp"
 
 #include <FastNoise/FastNoise.h>
 
 #include <VulkanPipeline/Validation/VulkanValidationLayer.h>
 #include <VulkanPipeline/VulkanDebug.h>
 
-#include <deque>
-
 #include <World/Chunk.hpp>
 
 #include <Scene/SceneManager.h>
 
-#include <cmath>
-#include <execution>
-
 static void callback_glfwWindowResized(GLFWwindow *window, int w, int h) {
+  EngineData::i()->w_frameBuffer = w;
+  EngineData::i()->h_frameBuffer = h;
   EngineData::i()->vkInstWrapper.framebufferWasResized = true;
 }
 
@@ -31,7 +27,7 @@ static void callback_glfwMousePosition(GLFWwindow *window, double x, double y) {
 
 static void callback_glfwKey(GLFWwindow *window, int key, int scancode, int action, int mods) {
   if (key == GLFW_KEY_H && action == GLFW_PRESS) {
-    LOG(I, "pressed key h");
+    LOG(D, "Toggled Wireframe Visualization");
 
     int &currentShader = EngineData::i()->vkInstWrapper.currentShader;
 
@@ -41,14 +37,44 @@ static void callback_glfwKey(GLFWwindow *window, int key, int scancode, int acti
       currentShader = 0;
     }
   }
+
+  if (key == GLFW_KEY_B && action == GLFW_PRESS) {
+    LOG(D, "Toggled Bounding Box Visualization");
+
+    for (Chunk *chunk: EngineData::i()->chunkHandler.getChunksGenerated()) {
+      auto boundingBoxDefinition = chunk->getChunkMesh().boundingBox.getMeshDefinition();
+
+      Mesh boundingBoxMesh{};
+      boundingBoxMesh.shader = &EngineData::i()->vkInstWrapper.pipelines.find("chunkWireframe")->second;
+      boundingBoxMesh.vertexBuffer = Buffers::createVertexBuffer(boundingBoxDefinition.first);
+      boundingBoxMesh.indexBuffer = Buffers::createIndexBuffer(boundingBoxDefinition.second);
+      boundingBoxMesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1),
+                                                                      {chunk->getPos().x, chunk->getPos().y,
+                                                                       chunk->getPos().z});
+
+      int index{};
+
+      for (Vertex vert: boundingBoxDefinition.first) {
+        LOG(D, std::to_string(index) + " | " + Util::stringFromVec3(vert.pos));
+        index++;
+      }
+
+      index = 0;
+
+      SceneManager::i()->curScene.meshesInScene.push_back(boundingBoxMesh);
+    }
+
+  }
+
 }
 
 void Voxelate::run() {
   initWindow();
 
-  EngineData::i()->threadPool.start(8);
-
   initVulkan();
+
+  ThreadSet threadSet{1, 1, 1};
+  EngineData::i()->threadPool.start(threadSet, 8);
 
   initScene();
 
@@ -126,24 +152,35 @@ void Voxelate::initVulkan() {
   RenderPass::create();
 
   // Global Shader Pipeline / UBER Shader
-  VulkanPipeline::Pipeline globalPipeline{"global"};
+  VulkanPipeline::Pipeline globalPipeline{};
+  globalPipeline.pipelineName = "global";
   globalPipeline.bindShader("shader");
   globalPipeline.setVertexDescriptions(BlockVertex::getBindingDescription(), BlockVertex::getAttributeDescriptions());
   globalPipeline.setDescriptorLayout(descriptorLayout);
   globalPipeline.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
   globalPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
   globalPipeline.build();
-  EngineData::i()->vkInstWrapper.globalPipeline = globalPipeline;
 
   // Debug Pipeline
-  VulkanPipeline::Pipeline debugPipeline{"debug"};
+  VulkanPipeline::Pipeline debugPipeline{};
+  debugPipeline.pipelineName = "debug";
   debugPipeline.bindShader("wireframe");
   debugPipeline.setVertexDescriptions(BlockVertex::getBindingDescription(), BlockVertex::getAttributeDescriptions());
   debugPipeline.setDescriptorLayout(descriptorLayout);
   debugPipeline.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
   debugPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
   debugPipeline.build();
-  EngineData::i()->vkInstWrapper.foliagePipeline = debugPipeline;
+
+  // Debug Pipeline
+  VulkanPipeline::Pipeline chunkWireframe{};
+  chunkWireframe.pipelineName = "chunkWireframe";
+  chunkWireframe.bindShader("debug");
+  chunkWireframe.setVertexDescriptions(Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
+  chunkWireframe.setDescriptorLayout(descriptorLayout);
+  chunkWireframe.setRenderPass(EngineData::i()->vkInstWrapper.renderPass);
+  chunkWireframe.setPolygonMode(VK_POLYGON_MODE_FILL);
+  chunkWireframe.setCulling(VK_CULL_MODE_NONE);
+  chunkWireframe.build();
 
   VulkanPipeline::createFramebuffers();
 
@@ -160,7 +197,6 @@ void Voxelate::initScene() {
 
   LOG(D, "Settings scenes");
 
-
   SceneManager::i()->curScene = mainScene;
   SceneManager::i()->scenesLoaded.push_back(mainScene);
 
@@ -171,75 +207,59 @@ void Voxelate::initGui() {
   UI::initUserInterface();
 }
 
-int renderDistance = 5;
-int renderDistanceY = 1;
+const int renderDistance = 32;
+const int renderDistanceY = 2;
+
+float inline distanceSq(glm::vec3 &a, glm::vec3 &b) {
+  float dx = a.x - b.x;
+  float dy = a.y - b.y;
+  float dz = a.z - b.z;
+  return (dx * dx) + (dy * dy) + (dz * dz);
+}
 
 void Voxelate::update(float deltaTime) {
   cam.update(EngineData::i()->window, deltaTime);
 
-  ChunkHandler &rChunkHandler = EngineData::i()->chunkHandler;
-
+  // TODO: We need to multithread this
+  ChunkHandler &ch = EngineData::i()->chunkHandler;
   int x = cam.position.x / CHUNK_SIZE;
   int y = cam.position.y / CHUNK_SIZE;
   int z = cam.position.z / CHUNK_SIZE;
+  glm::vec3 camPos{x,y,z};
+  for (int xc = -renderDistance + x; xc < renderDistance + x; xc++) {
+    for (int yc = -renderDistanceY + y; yc < renderDistanceY + y; yc++) {
+      for (int zc = -renderDistance + z; zc < renderDistance + z; zc++) {
+        glm::vec3 pos{xc, yc, zc};
 
-  for(int lx = -renderDistance + x; lx < renderDistance + x; lx++) {
-    for(int ly = -renderDistanceY + y; ly < renderDistanceY + y; ly++) {
-      for(int lz = -renderDistance + z; lz < renderDistance + z; lz++) {
+        float distToChunkFromPlayer = distanceSq(pos, camPos);
 
-        if(rChunkHandler.getChunk(lx, ly, lz) == nullptr) {
-          glm::ivec3 pos{lx, ly, lz};
+        if (distToChunkFromPlayer <= renderDistance + 2) {
+          // Check for existence or currently in queue
+          if (ch.getChunk(pos) != nullptr || ch.isChunkInQueue(pos)) continue;
 
-          // If we found a chunk in the currently generating list
-          if (std::find(rChunkHandler.getChunksGenerating().begin(), rChunkHandler.getChunksGenerating().end(), pos)
-          != rChunkHandler.getChunksGenerating().end())
-            continue;
-
-          //LOG(D, "load chunk at: " + Util::stringFromIVec3(chunkPos));
-
-          rChunkHandler.getChunksGenerating().push_back(pos);
-          rChunkHandler.generateChunk(pos.x, pos.y, pos.z);
+          ch.addChunkToQueue({xc, yc, zc});
         }
       }
     }
   }
-
-
-
-
-
-
-//  if (rChunkHandler.getChunk(x, y, z) == nullptr) {
-//    glm::ivec3 newPos{x, y, z};
 //
-//    // Return if we are already generating this chunk
-//    if (std::find(rChunkHandler.getChunksGenerating().begin(),
-//                  rChunkHandler.getChunksGenerating().end(), newPos) !=
-//                  rChunkHandler.getChunksGenerating().end()) {
-//      return;
-//    }
-//
-//    rChunkHandler.getChunksGenerating().push_back(newPos); // <- Insert new chunk pos that is generating
-//    rChunkHandler.generateChunk(x, y, z); // <- Enqueue chunk generation on thread-pool
-//
-//  }
-
-  for (Chunk *chunk: rChunkHandler.getChunksGenerated()) {
+  for (Chunk *chunk: ch.getChunksGenerated()) {
     if (chunk->isLoaded()) continue;
-    if(chunk->isChunkEmpty()) continue;
+    if (chunk->isChunkEmpty() || !chunk->isMeshed()) continue;
 
     chunk->setChunkLoaded(true);
 
     // Face Construction done -> create buffers in mesh struct
 
-    Mesh& mesh = chunk->getChunkMesh().mesh;
+    Mesh &mesh = chunk->getChunkMesh().mesh;
     mesh.vertexBuffer = Buffers::createBlockVertexBuffer(chunk->getChunkMesh().vertices);
     mesh.indexBuffer = Buffers::createIndexBuffer(chunk->getChunkMesh().indices);
-    mesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {chunk->getPos()->x * CHUNK_SIZE, chunk->getPos()->y * CHUNK_SIZE, chunk->getPos()->z * CHUNK_SIZE});
+    mesh.meshRenderData.transformMatrix = glm::translate(glm::mat4(1), {chunk->getPos().x * CHUNK_SIZE,
+                                                                        chunk->getPos().y * CHUNK_SIZE,
+                                                                        chunk->getPos().z * CHUNK_SIZE});
 
     SceneManager::i()->curScene.meshesInScene.push_back(chunk->getChunkMesh().mesh);
   }
-
 }
 
 void Voxelate::loop() {
@@ -255,11 +275,12 @@ void Voxelate::loop() {
 
     glfwPollEvents();
 
-    update(deltaSeconds);
+    this->update(deltaSeconds);
 
     // Main Entry for rendering the Engine User Interface
     UI::renderMainInterface(cam);
-    // ACTUAL RENDERING
+
+    // >- RENDERING -<
     PrimitiveRenderer::render(cam);
   }
 

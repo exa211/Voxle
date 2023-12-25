@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 project(Voxle)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_EXE_LINKER_FLAGS "-o3")
+# -Ofast can be changed to -O3 for bit more stability
+# -Ofast is really unstable
+set(CMAKE_CXX_FLAGS "-Ofast -pipe -msse2 -msse3")
 
 find_package(Vulkan REQUIRED)
 
@@ -99,7 +101,12 @@ add_executable(Voxle
         src/Engine/Util/ColorUtil.cpp
         src/Engine/Util/ColorUtil.hpp
         src/Engine/Util/Util.cpp
-        src/Engine/Util/Util.hpp)
+        src/Engine/Util/Util.hpp
+        src/Engine/Collision/AABB.cpp
+        src/Engine/Collision/AABB.hpp
+        src/Engine/World/VoxelAccess.cpp
+        src/Engine/World/VoxelAccess.hpp
+        src/Engine/World/Block/CubeDefinition.hpp)
 
 target_link_libraries(Voxle PUBLIC ${Vulkan_LIBRARIES} glfw glm FastNoise GPUOpen::VulkanMemoryAllocator)
 target_compile_definitions(Voxle PUBLIC -DImTextureID=ImU64 -DVOXLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

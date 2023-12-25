@@ -20,18 +20,18 @@ void VulkanShader::Shader::loadCombined(const std::string& name) {
  *
  *  @return Array of VkPipelineShaderStageCreateInfos for the pipeline creation.
  **/
-std::array<VkPipelineShaderStageCreateInfo, 2> VulkanShader::Shader::getCreateInfo() {
+std::vector<VkPipelineShaderStageCreateInfo> VulkanShader::Shader::getCreateInfo() {
   if(vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
     LOG(W, "Could not create VkPipelineShaderStageCreateInfo for shader: \n" + shaderName);
   }
 
-  VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+  VkPipelineShaderStageCreateInfo vertShaderStageInfo;
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Tells what stage should be created
   vertShaderStageInfo.module = vertShaderModule;
   vertShaderStageInfo.pName = "main"; // The main function of the shader code
 
-  VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+  VkPipelineShaderStageCreateInfo fragShaderStageInfo;
   fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT; // Tells what stage should be created
   fragShaderStageInfo.module = fragShaderModule;

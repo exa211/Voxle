@@ -20,7 +20,7 @@ namespace VulkanPipeline {
 
   class Pipeline {
   public:
-    explicit Pipeline(std::string  pipelineName) : pipelineName(std::move(pipelineName)) {}
+    std::string pipelineName{"undefined"};
 
     void build();
     void bindShader(const std::string& sName);
@@ -31,12 +31,12 @@ namespace VulkanPipeline {
     void setDescriptorLayout(VkDescriptorSetLayout& layout);
     void setRenderPass(VkRenderPass inRenderPass);
     void setPolygonMode(VkPolygonMode inPolygonMode);
+    void setCulling(VkCullModeFlags inCullMode);
 
     // >- GETTER -<
     VkPipeline& getPipeline();
     VkPipelineLayout& getPipelineLayout();
   private:
-    std::string pipelineName{"undefined"};
     VkPipeline pipeline{};
     // Create infos
     VkPipelineVertexInputStateCreateInfo vertInputCreateInfo{};
@@ -52,6 +52,7 @@ namespace VulkanPipeline {
     VkRenderPass renderpass{};
 
     VkPolygonMode polygonMode;
+    VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
 
     VulkanShader::Shader shader{};
   };

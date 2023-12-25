@@ -15,7 +15,7 @@ namespace VulkanShader {
   public:
     void loadCombined(const std::string& filename);
     void destroy();
-    std::array<VkPipelineShaderStageCreateInfo, 2> getCreateInfo();
+    std::vector<VkPipelineShaderStageCreateInfo> getCreateInfo();
   private:
     std::string shaderName{"undefined"};
     VkShaderModule vertShaderModule{};

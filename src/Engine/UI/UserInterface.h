@@ -55,9 +55,9 @@ namespace UI {
     ImGuiIO &io = ImGui::GetIO();
     (void) io;
 
-    //io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+//    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+//    io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+//    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     io.Fonts->AddFontFromFileTTF("../res/font/Nunito-Regular.ttf", 16);
 
@@ -153,6 +153,7 @@ namespace UI {
 
     // Debug Panel
     ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2(0, 150));
     ImGui::Begin("##DebugPanel", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("Camera Position: ");

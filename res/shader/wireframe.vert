@@ -26,9 +26,9 @@ vec2(0.0, 1.0f)
 );
 
 void main() {
-    float x = float(packedVertData & 0x3Fu);
+    float z = float(packedVertData & 0x3Fu);
     float y = float((packedVertData & 0xFC0u) >> 6u);
-    float z = float((packedVertData & 0x3F000u) >> 12u);
+    float x = float((packedVertData & 0x3F000u) >> 12u);
 
     // Reversed little endian order
     // Needs fixing i guess? But im really bad at shifting bits.

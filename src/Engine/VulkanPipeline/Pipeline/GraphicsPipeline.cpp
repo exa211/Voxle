@@ -133,6 +133,7 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
   Mesh *lastRenderedMesh = nullptr;
+  VulkanPipeline::Pipeline *lastUsedPipeline = nullptr;
 
   glm::mat4 view = cam.cameraMatrix.view;
   glm::mat4 proj = cam.cameraMatrix.proj;
@@ -142,15 +143,21 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
   // Bind the Pipeline to the commandBuffer
   // Don't need to bind this for every single mesh
 
-  VulkanPipeline::Pipeline currentPipeline = EngineData::i()->vkInstWrapper.globalPipeline;
+  VulkanPipeline::Pipeline currentPipeline = EngineData::i()->vkInstWrapper.pipelines.find("global")->second;
 
   if(EngineData::i()->vkInstWrapper.currentShader == 1) {
-    currentPipeline = EngineData::i()->vkInstWrapper.foliagePipeline;
+    currentPipeline = EngineData::i()->vkInstWrapper.pipelines.find("debug")->second;
   }
 
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, currentPipeline.getPipeline());
 
   for (Mesh &m: SceneManager::i()->curScene.meshesInScene) {
+
+    // Bind different pipeline if required
+    if(m.shader != nullptr && lastUsedPipeline != m.shader) {
+      vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m.shader->getPipeline());
+      lastUsedPipeline = m.shader;
+    }
 
     // TODO: MATRIXS CALCULATIONS ON CPU IS NOT REALLY FAST CONSIDER JUST GIVING THE GPU/SHADER ROTATION, TRANSLATION AND SCALE VALUES
 
@@ -163,7 +170,7 @@ void VulkanPipeline::recordCommandBuffer(Camera &cam, VkCommandBuffer commandBuf
     vkCmdPushConstants(commandBuffer, currentPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(MeshPushConstant), &constant);
 
-    // Bind the mesh if it's not the same
+    // Bind different Mesh if required
     if (&m != lastRenderedMesh) {
 
       VkDeviceSize offsets = 0;
@@ -318,15 +325,6 @@ void VulkanPipeline::Pipeline::setRenderPass(VkRenderPass inRenderPass) {
 void VulkanPipeline::Pipeline::build() {
   VkDevice &device = EngineData::i()->vkInstWrapper.device;
 
-  std::vector<VkDynamicState> dynamicStates = {
-    VK_DYNAMIC_STATE_SCISSOR
-  };
-
-  VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
-  dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-  dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
-
   // >- VkPipelineVertexInputStateCreateInfo -<
 
   //VkPipelineVertexInputAssemblyStateCreateInfo
@@ -356,7 +354,7 @@ void VulkanPipeline::Pipeline::build() {
   rasterCreateInfo.depthClampEnable = VK_FALSE;
   rasterCreateInfo.rasterizerDiscardEnable = VK_FALSE;
   rasterCreateInfo.polygonMode = polygonMode; // Change this for line, or point drawing
-  rasterCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+  rasterCreateInfo.cullMode = cullMode;
   rasterCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
   rasterCreateInfo.depthBiasEnable = VK_FALSE;
   rasterCreateInfo.depthBiasConstantFactor = 0.0f;
@@ -445,7 +443,7 @@ void VulkanPipeline::Pipeline::build() {
   pipelineCreateInfo.pMultisampleState = &multisampling;
   pipelineCreateInfo.pDepthStencilState = &depthTest; // <- Depth testing / Depth stencil
   pipelineCreateInfo.pColorBlendState = &colorBlending;
-  pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+  pipelineCreateInfo.pDynamicState = nullptr; // <- We don't want to use dynamic states anymore
 
   pipelineCreateInfo.layout = pipelineLayout;
   pipelineCreateInfo.renderPass = renderpass;
@@ -459,6 +457,10 @@ void VulkanPipeline::Pipeline::build() {
   if (vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &pipeline)) {
     LOG(F, "Could not create GraphicsPipeline.");
   }
+
+  // Insert pipeline into pipelines unordered_map
+  LOG(I, "Inserting Pipeline: " + pipelineName + " into pipeline map");
+  EngineData::i()->vkInstWrapper.pipelines.insert({pipelineName, *this});
 
   LOG(I, "Created Pipeline.");
   LOG(D, "Cleaning up shader's");
@@ -475,5 +477,9 @@ VkPipeline &VulkanPipeline::Pipeline::getPipeline() {
 
 void VulkanPipeline::Pipeline::setPolygonMode(VkPolygonMode inPolygonMode) {
   this->polygonMode = inPolygonMode;
+}
+
+void VulkanPipeline::Pipeline::setCulling(VkCullModeFlags inCullMode) {
+  this->cullMode = inCullMode;
 }
 
